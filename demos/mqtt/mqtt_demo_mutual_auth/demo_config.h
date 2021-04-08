@@ -55,8 +55,9 @@
  * @note Your AWS IoT Core endpoint can be found in the AWS IoT console under
  * Settings/Custom Endpoint, or using the describe-endpoint API.
  *
- * #define AWS_IOT_ENDPOINT               "...insert here..."
- */
+ *
+*/
+#define AWS_IOT_ENDPOINT               "a2u4h4p5qmhv9v-ats.iot.ap-northeast-2.amazonaws.com"
 
 /**
  * @brief AWS IoT MQTT broker port number.
@@ -88,7 +89,25 @@
 #ifndef ROOT_CA_CERT_PATH
     #define ROOT_CA_CERT_PATH    "certificates/AmazonRootCA1.crt"
 #endif
+#define CLIENT_CERT_PATH    "certificates/fdabd67e88-certificate.pem.crt"
+#define CLIENT_PRIVATE_KEY_PATH    "certificates/fdabd67e88-private.pem.key"
+#define CERTFILE_PATH "certificates"
+#define PRE_TEMPLATE_PATH "$aws/provisioning-templates/" PRODUCTION_TEMPLATE
+#define TEMPLATE_ACCEPT_TOPIC PRE_TEMPLATE_PATH "provision/json/accepted"
+#define TEMPLATE_REJECT_TOPIC PRE_TEMPLATE_PATH "provision/json/rejected"
+#define CERTIFICATE_ACCEPT_TOPIC "$aws/certificates/create/json/accepted"
+#define CERTIFICATE_REJECT_TOPIC "$aws/certificates/create/json/rejected"
+#define PRODUCTION_TEMPLATE "Rane_provisioning/"
 
+#define PROVISIONING_CERT_CREATE_TOPIC "$aws/certificates/create/json"
+#define PROVISIONING_TEMPLATE_TOPIC PRE_TEMPLATE_PATH "provision/json"
+
+#define TEMPLATE_ACC_LENGTH ((uint16_t) (sizeof(TEMPLATE_ACCEPT_TOPIC) - 1))
+#define TEMPLATE_RJT_LENGTH ((uint16_t) (sizeof(TEMPLATE_REJECT_TOPIC) - 1))
+#define CERTIFICATE_ACC_LENGTH ((uint16_t) (sizeof(CERTIFICATE_ACCEPT_TOPIC) - 1))
+#define CERTIFICATE_RJT_LENGTH ((uint16_t) (sizeof(CERTIFICATE_REJECT_TOPIC) - 1))
+#define PROVISIONING_CC_LENGTH ((uint16_t) (sizeof(PROVISIONING_CERT_CREATE_TOPIC) - 1))
+#define PROVISIONING_TT_LENGTH ((uint16_t) (sizeof(PROVISIONING_TEMPLATE_TOPIC) - 1))
 /**
  * @brief Path of the file containing the client certificate.
  *
@@ -98,8 +117,7 @@
  *
  * @note This certificate should be PEM-encoded.
  *
- * #define CLIENT_CERT_PATH    "...insert here..."
- */
+  */
 
 /**
  * @brief Path of the file containing the client's private key.
@@ -110,7 +128,6 @@
  *
  * @note This private key should be PEM-encoded.
  *
- * #define CLIENT_PRIVATE_KEY_PATH    "...insert here..."
  */
 
 /**
@@ -153,13 +170,13 @@
  * No two clients may use the same client identifier simultaneously.
  */
 #ifndef CLIENT_IDENTIFIER
-    #define CLIENT_IDENTIFIER    "testclient"
+    #define CLIENT_IDENTIFIER    "client"
 #endif
 
 /**
  * @brief Size of the network buffer for MQTT packets.
  */
-#define NETWORK_BUFFER_SIZE       ( 1024U )
+#define NETWORK_BUFFER_SIZE       ( 4096U )
 
 /**
  * @brief The name of the operating system that the application is running on.
