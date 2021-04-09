@@ -312,6 +312,14 @@ enum
     NEW_IDENTIFIER
 };
 
+enum
+{
+    SET_COMPLETE,
+    SET_IN_PROGRESS,
+    SET_FAILED,
+    RESERVED
+};
+
 /**
  * @brief Initialize Topic name
  */
@@ -341,12 +349,13 @@ uint16_t TopicFilterLength[TOPIC_LENGTH] = {
 	PROVISIONING_TT_LENGTH
 };
 
-char MqttExMessage[2][1024] = {
+char MqttExMessage[3][1024] = {
 	"{}",
-	"{}"};
+	"{}",
+    "{\"service_response\":\"##### RESPONSE FROM PREVIOUSLY FORBIDDEN TOPIC #####\"}"};
 
-uint16_t MqttExMessageLength[2] = {0, };
-NetworkContext_t gNetworkContext = { 0 };
+uint16_t MqttExMessageLength[3] = {0, };
+
 
 char uuidStr[64] = {0,};
 char deviceUUID[128] = {0,};
@@ -360,7 +369,7 @@ char queryCertificate[4][64] =
 };
 
 bool *gSessionPresent;
-
+int set_in_progress = 0;
 
 /*-----------------------------------------------------------*/
 
@@ -428,6 +437,8 @@ struct NetworkContext
 {
 	OpensslParams_t * pParams;
 };
+
+NetworkContext_t gNetworkContext = { 0 };
 
 /*-----------------------------------------------------------*/
 
@@ -711,6 +722,9 @@ static int connectToServerWithBackoffRetries( NetworkContext_t * pNetworkContext
 	OpensslCredentials_t opensslCredentials;
 	uint16_t nextRetryBackOff;
 
+    char privatefilePath[50] = {0,}, certfilePath[50] = {0,};
+
+
 	/* Initialize information to connect to the MQTT broker. */
 	// AWS IoT 엔드포인트 주소
 	serverInfo.pHostName = AWS_IOT_ENDPOINT;
@@ -731,20 +745,22 @@ static int connectToServerWithBackoffRetries( NetworkContext_t * pNetworkContext
     switch(flag)
     {
         case EX_IDENTIFIER:
-            opensslCredentials.pClientCertPath = CLIENT_CERT_PATH(EX_CERTID);
-            // 사물 생성시 발급받은 Private Key 경로
-            opensslCredentials.pPrivateKeyPath = CLIENT_PRIVATE_KEY_PATH(EX_CERTID);
+            sprintf(certfilePath, "%s/%s-certificate.pem.crt", CERTFILE_PATH, EX_CERTID);
+            sprintf(privatefilePath, "%s/%s-private.pem.key", CERTFILE_PATH, EX_CERTID);
         break;
         case NEW_IDENTIFIER:
             if(strlen(gCertificateId) != 0)
             {
                 LogInfo(("new certificateId : %s\n", gCertificateId));
-                opensslCredentials.pClientCertPath = CLIENT_CERT_PATH(gCertificateId);
-                // 사물 생성시 발급받은 Private Key 경로
-                opensslCredentials.pPrivateKeyPath = CLIENT_PRIVATE_KEY_PATH(gCertificateId);
+                sprintf(certfilePath, "%s/%s-certificate.pem.crt", CERTFILE_PATH, gCertificateId);
+                sprintf(privatefilePath, "%s/%s-private.pem.key", CERTFILE_PATH, gCertificateId);
             }
         break;
     }
+
+    opensslCredentials.pClientCertPath = certfilePath;
+    // 사물 생성시 발급받은 Private Key 경로
+    opensslCredentials.pPrivateKeyPath = privatefilePath;
 	
 #endif
 
@@ -1016,7 +1032,7 @@ static void handleIncomingPublish( MQTTContext_t *pMqttContext, MQTTPublishInfo_
 
 			else if (i == TEMPLATE_ACCEPT)
 			{
-				LogInfo(("Validation 썪쎆쓰\n"));
+                set_in_progress = SET_IN_PROGRESS;
 				returnStatus = disconnectMqttSession( pMqttContext );
 
 				if(returnStatus != EXIT_SUCCESS)
@@ -1029,6 +1045,7 @@ static void handleIncomingPublish( MQTTContext_t *pMqttContext, MQTTPublishInfo_
 					MQTTStatus_t mqttStatus;
 					MQTTConnectInfo_t connectInfo = {0, };
 					JSONStatus_t jsonResult;
+                    bool mqttSessionEstablished = false;
 					bool pSessionPresent, brokerSessionPresent, createCleanSession = false;
 					char *value, tQuery[24];
 					strcpy(tQuery, "thingName");
@@ -1048,19 +1065,65 @@ static void handleIncomingPublish( MQTTContext_t *pMqttContext, MQTTPublishInfo_
 
                         if(returnStatus == EXIT_FAILURE)
                         {
+                            set_in_progress = SET_FAILED;
                             LogError(("Failed to connect to MQTT broker %.%s.\n",
                                         AWS_IOT_ENDPOINT_LENGTH,
                                         AWS_IOT_ENDPOINT));
                         }
                         else
                         {
-                            LogInfo(("SuCCESSS!!!!\n"));
-                        }
-						createCleanSession = ( pSessionPresent == true ) ? false : true;
-						returnStatus = establishMqttSession(pMqttContext, createCleanSession, &brokerSessionPresent, CC_IDENTIFIER);
+                            createCleanSession = ( pSessionPresent == true ) ? false : true;
+                            returnStatus = establishMqttSession(pMqttContext, createCleanSession, &brokerSessionPresent, CC_IDENTIFIER);
+                            
+                            if(returnStatus == EXIT_SUCCESS)
+                            {
+                                LogInfo(("라네는 위대했다.\n"));
+                                mqttSessionEstablished = true;
+                                pSessionPresent = true;
 
+                                if(brokerSessionPresent == true)
+                                {
+                                    LogInfo( ( "An MQTT session with broker is re-established. "
+                                                "Resending unacked publishes." ) );
+                                    returnStatus = handlePublishResend(pMqttContext);
+                                }
+                                else
+                                {
+                                    LogInfo( ( "A clean MQTT connection is established."
+                                                " Cleaning up all the stored outgoing publishes.\n\n" ) );
+
+                                    /* Clean up the outgoing publishes waiting for ack as this new
+                                    * connection doesn't re-establish an existing session. */
+                                    cleanupOutgoingPublishes();
+                                }
+
+                                returnStatus = subscribeToTopic(pMqttContext, OPENWORLD);
+                                mqttStatus = MQTT_ProcessLoop( pMqttContext, MQTT_PROCESS_LOOP_TIMEOUT_MS );
+
+                                if(returnStatus == EXIT_SUCCESS && mqttStatus == MQTTSuccess)
+                                {
+                                    
+                                    publishToTopic(pMqttContext, OPENWORLD, 2);
+                                    set_in_progress = SET_COMPLETE;
+                                }
+                            }
+                            else
+                            {
+                                set_in_progress = SET_FAILED;
+                                LogInfo(("라네는 실패했다.\n"));
+                            }
+                        }
 					}
+                    else
+                    {
+                        LogInfo(("JSON Validation Failed\n"));
+                    }
 				}
+                else
+                {
+                    set_in_progress = SET_FAILED;   
+                    LogError(("Disconnect previouse connection failed\n"));
+                }
 			}
 			
 			break;
@@ -1096,7 +1159,6 @@ void assemble_certificates(char *pBuffer, size_t pBufferLength)
 	{
 		jsonResult = JSON_Search(payloadBuffer, pBufferLength, queryCertificate[0], queryLength,
 			&value, &valueLength);
-		LogInfo(("Search Query : %s\n", queryCertificate[0]));
 
 		if(jsonResult == JSONSuccess)
 		{
@@ -1118,46 +1180,15 @@ void assemble_certificates(char *pBuffer, size_t pBufferLength)
 				FILE *fp;
 				certificateId[strlen(certificateId)] = '\0';
 				sprintf(certFileName, "%s/%s-certificate.pem.crt", CERTFILE_PATH, certificateId);
-				LogInfo(("cert file name : %s\n", certFileName));
 				fp = fopen(certFileName, "w");
-#if 0
-				char fileBuffer[NETWORK_BUFFER_SIZE] = {0,};
-				strncpy(fileBuffer, value, sizeof(char)*valueLength);
-
-				char tempPtr[2048] = {0,};
-				char *ptr = strstr(fileBuffer, "\\");
-				int tPtrSize = 0, i = 0;
-				tPtrSize = strlen(fileBuffer) - strlen(ptr);
 				
-				while(ptr != NULL)
-				{
-					memset(tempPtr, 0, sizeof(tempPtr));
-					if(i == 0)
-					{
-						tPtrSize = strlen(fileBuffer) - strlen(ptr);
-						strncpy(tempPtr, fileBuffer, tPtrSize);
-						i = tPtrSize;
-					}
-					else
-					{
-						tPtrSize = strlen(fileBuffer) - i - strlen(ptr) - 2;
-						strncpy(tempPtr, fileBuffer + i + 2, tPtrSize);
-						i = tPtrSize + i + 2;
-					}
-					ptr = strstr(ptr+1, "\\");
-					fprintf(fp, "%s\n", tempPtr);
-				}
-				fclose(fp);
-				#endif
-				
-				//convertResult = JSONtoCertFile(value, valueLength, fp);
+				convertResult = JSONtoCertFile(value, valueLength, fp);
 				fclose(fp);
 			}
 			else
 			{
 				LogError(("JSON Search Error\n"));
 			}
-
 
 			// Private Key Parsing
 			queryLength = strlen(queryCertificate[2]);
@@ -1170,39 +1201,9 @@ void assemble_certificates(char *pBuffer, size_t pBufferLength)
 				tempId[strlen(tempId)] = '\0';
 				sprintf(privateFileName, "%s/%s-private.pem.key", CERTFILE_PATH, tempId);
                 strcpy(gCertificateId, tempId);
-				LogInfo(("private key name : %s\n", privateFileName));	
 				fp = fopen(privateFileName, "w");
 
-				#if 0
-				
-				char fileBuffer[NETWORK_BUFFER_SIZE] = {0,};
-				strncpy(fileBuffer, value, sizeof(char)*valueLength);
-				char tempPtr[2048] = {0,};
-				char *ptr = strstr(fileBuffer, "\\");
-				int tPtrSize = 0, i = 0;
-				tPtrSize = strlen(fileBuffer) - strlen(ptr);
-				
-				while(ptr != NULL)
-				{
-					memset(tempPtr, 0, sizeof(tempPtr));
-					if(i == 0)
-					{
-						tPtrSize = strlen(fileBuffer) - strlen(ptr);
-						strncpy(tempPtr, fileBuffer, tPtrSize);
-						i = tPtrSize;
-					}
-					else
-					{
-						tPtrSize = strlen(fileBuffer) - i - strlen(ptr) - 2;
-						strncpy(tempPtr, fileBuffer + i + 2, tPtrSize);
-						i = tPtrSize + i + 2;
-					}
-					ptr = strstr(ptr+1, "\\");
-					fprintf(fp, "%s\n", tempPtr);
-				}
-				fclose(fp);
-				#endif
-				//convertResult = JSONtoCertFile(value, valueLength, fp);
+				convertResult = JSONtoCertFile(value, valueLength, fp);
 				fclose(fp);
 			}
 
@@ -1215,8 +1216,10 @@ void assemble_certificates(char *pBuffer, size_t pBufferLength)
 			{
 				convertResult = registerThing(value, valueLength);
 				
-				if(convertResult == EXIT_SUCCESS)
-					LogInfo(("썪쎼쓰 : %s\n", MqttExMessage[1]));
+                if(convertResult != EXIT_SUCCESS)
+                {
+                    LogError(("Registration new service failed\n"));
+                }
 			}
 		}
 		else
@@ -1373,20 +1376,12 @@ static void eventCallback( MQTTContext_t * pMqttContext,
 				 * by the server, indicating a successful subscription attempt. */
 				if( globalSubAckStatus != MQTTSubAckFailure )
 				{
-					LogInfo( ( "Subscribed to the topic %.*s. with maximum QoS %u.\n\n",
-								MQTT_EXAMPLE_TOPIC_LENGTH,
-								MQTT_EXAMPLE_TOPIC,
-								globalSubAckStatus ) );
 				}
-
 				/* Make sure ACK packet identifier matches with Request packet identifier. */
 				assert( globalSubscribePacketIdentifier == packetIdentifier );
 				break;
 
 			case MQTT_PACKET_TYPE_UNSUBACK:
-				LogInfo( ( "Unsubscribed from the topic %.*s.\n\n",
-							MQTT_EXAMPLE_TOPIC_LENGTH,
-							MQTT_EXAMPLE_TOPIC ) );
 				/* Make sure ACK packet identifier matches with Request packet identifier. */
 				assert( globalUnsubscribePacketIdentifier == packetIdentifier );
 				break;
@@ -1536,15 +1531,6 @@ static int subscribeToTopic( MQTTContext_t * pMqttContext, int tnum )
 
 	assert( pMqttContext != NULL );
 
-	/* Start with everything at 0. */
-	//( void ) memset( ( void * ) pGlobalSubscriptionList, 0x00, sizeof( pGlobalSubscriptionList ) );
-
-	/* This example subscribes to only one topic and uses QOS1.
-	pGlobalSubscriptionList[ 0 ].qos = MQTTQoS1;
-	pGlobalSubscriptionList[ 0 ].pTopicFilter = MQTT_EXAMPLE_TOPIC;
-	pGlobalSubscriptionList[ 0 ].topicFilterLength = MQTT_EXAMPLE_TOPIC_LENGTH;
-	*/
-	/* Generate packet identifier for the SUBSCRIBE packet. */
 	globalSubscribePacketIdentifier = MQTT_GetPacketId( pMqttContext );
 
 	/* Send SUBSCRIBE packet. */
@@ -1579,16 +1565,6 @@ static int unsubscribeFromTopic( MQTTContext_t * pMqttContext, int tnum )
 
 	assert( pMqttContext != NULL );
 
-	/* Start with everything at 0. */
-	//( void ) memset( ( void * ) pGlobalSubscriptionList, 0x00, sizeof( pGlobalSubscriptionList ) );
-
-	/* This example subscribes to and unsubscribes from only one topic
-	 * and uses QOS1. 
-	pGlobalSubscriptionList[ 0 ].qos = MQTTQoS1;
-	pGlobalSubscriptionList[ 0 ].pTopicFilter = MQTT_EXAMPLE_TOPIC;
-	pGlobalSubscriptionList[ 0 ].topicFilterLength = MQTT_EXAMPLE_TOPIC_LENGTH;
-	*/
-	/* Generate packet identifier for the UNSUBSCRIBE packet. */
 	globalUnsubscribePacketIdentifier = MQTT_GetPacketId( pMqttContext );
 
 	/* Send UNSUBSCRIBE packet. */
@@ -1620,6 +1596,7 @@ static int publishToTopic( MQTTContext_t * pMqttContext, int tnum, int mnum )
 	int returnStatus = EXIT_SUCCESS;
 	MQTTStatus_t mqttStatus = MQTTSuccess;
 	uint8_t publishIndex = MAX_OUTGOING_PUBLISHES;
+    JSONStatus_t jsonResult;
 
 	assert( pMqttContext != NULL );
 
@@ -1642,6 +1619,7 @@ static int publishToTopic( MQTTContext_t * pMqttContext, int tnum, int mnum )
 		outgoingPublishPackets[ publishIndex ].pubInfo.pPayload = MqttExMessage[mnum];
 		outgoingPublishPackets[ publishIndex ].pubInfo.payloadLength = MqttExMessageLength[mnum];
 
+        jsonResult = JSON_Validate(MqttExMessage[mnum], MqttExMessageLength[mnum]);
 		/* Get a new packet id. */
 		outgoingPublishPackets[ publishIndex ].packetId = MQTT_GetPacketId( pMqttContext );
 
@@ -1650,7 +1628,13 @@ static int publishToTopic( MQTTContext_t * pMqttContext, int tnum, int mnum )
 				&outgoingPublishPackets[ publishIndex ].pubInfo,
 				outgoingPublishPackets[ publishIndex ].packetId );
 
-		if( mqttStatus != MQTTSuccess )
+        if( jsonResult != JSONSuccess)
+        {
+            LogError( ( "Failed to validate JSON Message = %s.",
+						MqttExMessage[mnum] ) );    
+        }
+
+		if( mqttStatus != MQTTSuccess)
 		{
 			LogError( ( "Failed to send PUBLISH packet to broker with error = %s.",
 						MQTT_Status_strerror( mqttStatus ) ) );
@@ -1660,8 +1644,8 @@ static int publishToTopic( MQTTContext_t * pMqttContext, int tnum, int mnum )
 		else
 		{
 			LogInfo( ( "PUBLISH sent for topic %.*s to broker with packet ID %u.\n\n",
-						MQTT_EXAMPLE_TOPIC_LENGTH,
-						MQTT_EXAMPLE_TOPIC,
+						TopicFilterLength[tnum],
+						TopicFilter[tnum],
 						outgoingPublishPackets[ publishIndex ].packetId ) );
 		}
 	}
@@ -1738,7 +1722,7 @@ static void initPublishMessage()
 {
 	int i = 0;
 
-	for(i = 0 ; i < 2 ; i++)
+	for(i = 0 ; i < 3 ; i++)
 		MqttExMessageLength[i] = strlen(MqttExMessage[i]);
 }
 
@@ -2040,7 +2024,7 @@ int main( int argc, char ** argv )
 	//strcpy(uuidStr, "1234567-abcde-fghij-klmno-1234567abc-TLS350");
 	/* Set the pParams member of the network context with desired transport. */
 	networkContext.pParams = &opensslParams;
-    memcpy(gNetworkContext, networkContext, sizeof(NetworkContext_t));
+    memcpy(&gNetworkContext, &networkContext, sizeof(NetworkContext_t));
 	/* Seed pseudo random number generator (provided by ISO C standard library) for
 	 * use by retry utils library when retrying failed network operations. */
 
@@ -2100,16 +2084,19 @@ int main( int argc, char ** argv )
 
 			// MQTT 브로커에 연결을 시도한다. 만약 연결이 실패했을 경우 Timeout 이후 재시도한다.
 			// EXIT_FAILURE 발생 시 TCP Connection에 실패한 것을 의미함.
-			mqttStatus = MQTT_ProcessLoop( &mqttContext, MQTT_PROCESS_LOOP_TIMEOUT_MS );
-			if( returnStatus == EXIT_SUCCESS )
-			{
-				/* Log message indicating an iteration completed successfully. */
-				LogInfo( ( "Demo completed successfully." ) );
-			}
+            //if(set_in_progress == SET_COMPLETE)
+            //{
+                mqttStatus = MQTT_ProcessLoop( &mqttContext, MQTT_PROCESS_LOOP_TIMEOUT_MS );
+                if( returnStatus == EXIT_SUCCESS )
+                {
+                    /* Log message indicating an iteration completed successfully. */
+                    LogInfo( ( "Demo completed successfully." ) );
+                }
 
 
 
-			LogInfo( ( "Short delay before starting the next iteration....\n" ) );
+                LogInfo( ( "Short delay before starting the next iteration....\n" ) );
+            //}
 			sleep( 1 );
 		}
 		/* End TLS session, then close TCP connection. */
