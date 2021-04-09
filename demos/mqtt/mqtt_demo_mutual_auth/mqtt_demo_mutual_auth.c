@@ -293,36 +293,40 @@
 #define CLIENT_USERNAME_WITH_METRICS    CLIENT_USERNAME METRICS_STRING
 #endif
 
+// Topic Identifier
 enum
 {
-	TEMPLATE_REJECT,
-	CERTIFICATE_REJECT,
-	TEMPLATE_ACCEPT,
-	CERTIFICATE_ACCEPT,
-	MQTT_EX,
-	OPENWORLD,
-	PROVISIONING_CC,
-	PROVISIONING_TT
+	TEMPLATE_REJECT,        // Provisioning Template Reject Topic
+	CERTIFICATE_REJECT,     // Create Certificate Reject Topic
+	TEMPLATE_ACCEPT,        // Provisioning Template Accept Topic
+	CERTIFICATE_ACCEPT,     // Create Certificate Accept Topic
+	MQTT_EX,                // MQTT Example Topic
+	OPENWORLD,              // Create New Session Example Topic
+	PROVISIONING_CC,        // Provisioning Create Certificate Topic
+	PROVISIONING_TT         // Provisioning Template Topic
 };
 
+// MQTT Message Identifier
 enum
 {
-	EX_IDENTIFIER = 1,
-	CC_IDENTIFIER,
-    NEW_IDENTIFIER
+	EX_IDENTIFIER = 1,      // Example Identifier
+	CC_IDENTIFIER,          // Create Certificate Identifier
+    NEW_IDENTIFIER          // New Session Identifier
 };
 
+// MQTT Progress Identifier
 enum
 {
-    SET_COMPLETE,
-    SET_IN_PROGRESS,
-    SET_FAILED,
-    RESERVED
+    SET_COMPLETE,           // Set Complete Flag
+    SET_IN_PROGRESS,        // Set In Progress Flag
+    SET_FAILED,             // Set Failed Flag
+    RESERVED                // Reserved
 };
 
 /**
  * @brief Initialize Topic name
  */
+
 char TopicFilter[TOPIC_LENGTH][256] = {
 	TEMPLATE_REJECT_TOPIC,
 	CERTIFICATE_REJECT_TOPIC,
@@ -349,17 +353,30 @@ uint16_t TopicFilterLength[TOPIC_LENGTH] = {
 	PROVISIONING_TT_LENGTH
 };
 
+/**
+ * @brief Publish Payload Message Array 
+ */
+
 char MqttExMessage[3][1024] = {
 	"{}",
 	"{}",
     "{\"service_response\":\"##### RESPONSE FROM PREVIOUSLY FORBIDDEN TOPIC #####\"}"};
 
+/**
+ * @brief Publish Payload Message Length Array
+ */ 
 uint16_t MqttExMessageLength[3] = {0, };
 
-
+/// @brief Endpoint Device UUID
 char uuidStr[64] = {0,};
+
+/// @brief New Session Client Identifier 
 char deviceUUID[128] = {0,};
+
+/// @brief Global Certificate ID
 char gCertificateId[16] = {0,};
+
+/// @brief Create Certificate Parsing query Key
 char queryCertificate[4][64] = 
 {
 	"certificateId",
@@ -368,7 +385,10 @@ char queryCertificate[4][64] =
 	"certificateOwnershipToken"
 };
 
+/// @brief Client Session Present Flag
 bool *gSessionPresent;
+
+/// @brief Set in progress Flag
 int set_in_progress = 0;
 
 /*-----------------------------------------------------------*/
