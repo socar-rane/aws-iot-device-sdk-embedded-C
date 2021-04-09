@@ -96,11 +96,11 @@
 /* The AWS IoT message broker requires either a set of client certificate/private key
  * or username/password to authenticate the client. */
 #ifndef CLIENT_USERNAME
-#ifndef CLIENT_CERT_PATH
-#error "Please define path to client certificate(CLIENT_CERT_PATH) in demo_config.h."
-#endif
-#ifndef CLIENT_PRIVATE_KEY_PATH
-#error "Please define path to client private key(CLIENT_PRIVATE_KEY_PATH) in demo_config.h."
+//#ifndef CLIENT_CERT_PATH
+//#error "Please define path to client certificate(CLIENT_CERT_PATH) in demo_config.h."
+//#endif
+#ifndef EX_CERTID
+#error "Please define path to client cert id(EX_CERTID) in demo_config.h."
 #endif
 #else
 
