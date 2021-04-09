@@ -90,9 +90,11 @@
     #define ROOT_CA_CERT_PATH    "certificates/AmazonRootCA1.crt"
 #endif
 #define EX_CERTID "fdabd67e88"
-#define CLIENT_CERT_PATH (certId)   "certificates/"certId"-certificate.pem.crt"
-#define CLIENT_PRIVATE_KEY_PATH (certId)   "certificates/"certId"-private.pem.key"
 #define CERTFILE_PATH "certificates"
+
+#define CLIENT_CERT_PATH    "certificates/fdabd67e88-certificate.pem.crt"
+#define CLIENT_PRIVATE_KEY_PATH    "certificates/fdabd67e88-private.pem.key"
+
 #define PRE_TEMPLATE_PATH "$aws/provisioning-templates/" PRODUCTION_TEMPLATE
 #define TEMPLATE_ACCEPT_TOPIC PRE_TEMPLATE_PATH "provision/json/accepted"
 #define TEMPLATE_REJECT_TOPIC PRE_TEMPLATE_PATH "provision/json/rejected"
