@@ -86,14 +86,13 @@
  * @note This path is relative from the demo binary created. Update
  * ROOT_CA_CERT_PATH to the absolute path if this demo is executed from elsewhere.
  */
+
+#define CERTFILE_PATH "certificates"
 #ifndef ROOT_CA_CERT_PATH
-    #define ROOT_CA_CERT_PATH    "certificates/AmazonRootCA1.crt"
+    #define ROOT_CA_CERT_PATH    CERTFILE_PATH"/AmazonRootCA1.crt"
 #endif
 #define EX_CERTID "fdabd67e88"
-#define CERTFILE_PATH "certificates"
 
-#define CLIENT_CERT_PATH    "certificates/fdabd67e88-certificate.pem.crt"
-#define CLIENT_PRIVATE_KEY_PATH    "certificates/fdabd67e88-private.pem.key"
 
 #define PRE_TEMPLATE_PATH "$aws/provisioning-templates/" PRODUCTION_TEMPLATE
 #define TEMPLATE_ACCEPT_TOPIC PRE_TEMPLATE_PATH "provision/json/accepted"
