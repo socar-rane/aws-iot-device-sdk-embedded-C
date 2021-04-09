@@ -308,7 +308,8 @@ enum
 enum
 {
 	EX_IDENTIFIER = 1,
-	CC_IDENTIFIER
+	CC_IDENTIFIER,
+    NEW_IDENTIFIER
 };
 
 /**
@@ -345,8 +346,11 @@ char MqttExMessage[2][1024] = {
 	"{}"};
 
 uint16_t MqttExMessageLength[2] = {0, };
+NetworkContext_t gNetworkContext = { 0 };
+
 char uuidStr[64] = {0,};
 char deviceUUID[128] = {0,};
+char gCertificateId[16] = {0,};
 char queryCertificate[4][64] = 
 {
 	"certificateId",
@@ -463,7 +467,7 @@ static uint32_t generateRandomNumber();
  *
  * @return EXIT_FAILURE on failure; EXIT_SUCCESS on successful connection.
  */
-static int connectToServerWithBackoffRetries( NetworkContext_t * pNetworkContext );
+static int connectToServerWithBackoffRetries( NetworkContext_t * pNetworkContext, int flag );
 
 /**
  * @brief A function that connects to MQTT broker,
@@ -724,9 +728,24 @@ static int connectToServerWithBackoffRetries( NetworkContext_t * pNetworkContext
 	 * the client. */
 #ifndef CLIENT_USERNAME
 	// 사물 생성시 발급받은 인증서 경로
-	opensslCredentials.pClientCertPath = CLIENT_CERT_PATH;
-	// 사물 생성시 발급받은 Private Key 경로
-	opensslCredentials.pPrivateKeyPath = CLIENT_PRIVATE_KEY_PATH;
+    switch(flag)
+    {
+        case EX_IDENTIFIER:
+            opensslCredentials.pClientCertPath = CLIENT_CERT_PATH(EX_CERTID);
+            // 사물 생성시 발급받은 Private Key 경로
+            opensslCredentials.pPrivateKeyPath = CLIENT_PRIVATE_KEY_PATH(EX_CERTID);
+        break;
+        case NEW_IDENTIFIER:
+            if(strlen(gCertificateId) != 0)
+            {
+                LogInfo(("new certificateId : %s\n", gCertificateId));
+                opensslCredentials.pClientCertPath = CLIENT_CERT_PATH(gCertificateId);
+                // 사물 생성시 발급받은 Private Key 경로
+                opensslCredentials.pPrivateKeyPath = CLIENT_PRIVATE_KEY_PATH(gCertificateId);
+            }
+        break;
+    }
+	
 #endif
 
 	/* AWS IoT requires devices to send the Server Name Indication (SNI)
@@ -1024,6 +1043,19 @@ static void handleIncomingPublish( MQTTContext_t *pMqttContext, MQTTPublishInfo_
 						pSessionPresent = getSessionPresent();
 
 						sprintf(deviceUUID, "%s-Prod", uuidStr);
+
+                        returnStatus = connectToServerWithBackoffRetries(&gNetworkContext, NEW_IDENTIFIER);
+
+                        if(returnStatus == EXIT_FAILURE)
+                        {
+                            LogError(("Failed to connect to MQTT broker %.%s.\n",
+                                        AWS_IOT_ENDPOINT_LENGTH,
+                                        AWS_IOT_ENDPOINT));
+                        }
+                        else
+                        {
+                            LogInfo(("SuCCESSS!!!!\n"));
+                        }
 						createCleanSession = ( pSessionPresent == true ) ? false : true;
 						returnStatus = establishMqttSession(pMqttContext, createCleanSession, &brokerSessionPresent, CC_IDENTIFIER);
 
@@ -1137,6 +1169,7 @@ void assemble_certificates(char *pBuffer, size_t pBufferLength)
 				FILE *fp;
 				tempId[strlen(tempId)] = '\0';
 				sprintf(privateFileName, "%s/%s-private.pem.key", CERTFILE_PATH, tempId);
+                strcpy(gCertificateId, tempId);
 				LogInfo(("private key name : %s\n", privateFileName));	
 				fp = fopen(privateFileName, "w");
 
@@ -2007,7 +2040,7 @@ int main( int argc, char ** argv )
 	//strcpy(uuidStr, "1234567-abcde-fghij-klmno-1234567abc-TLS350");
 	/* Set the pParams member of the network context with desired transport. */
 	networkContext.pParams = &opensslParams;
-
+    memcpy(gNetworkContext, networkContext, sizeof(NetworkContext_t));
 	/* Seed pseudo random number generator (provided by ISO C standard library) for
 	 * use by retry utils library when retrying failed network operations. */
 
@@ -2023,7 +2056,7 @@ int main( int argc, char ** argv )
 
 	if( returnStatus == EXIT_SUCCESS )
 	{
-		returnStatus = connectToServerWithBackoffRetries( &networkContext );
+		returnStatus = connectToServerWithBackoffRetries( &networkContext, EX_IDENTIFIER );
 		if( returnStatus == EXIT_FAILURE )
 		{
 			/* Log error to indicate connection failure after all
