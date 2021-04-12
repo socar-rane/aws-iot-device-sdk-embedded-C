@@ -1086,9 +1086,7 @@ static void handleIncomingPublish( MQTTContext_t *pMqttContext, MQTTPublishInfo_
                         if(returnStatus == EXIT_FAILURE)
                         {
                             set_in_progress = SET_FAILED;
-                            LogError(("Failed to connect to MQTT broker %.%s.\n",
-                                        AWS_IOT_ENDPOINT_LENGTH,
-                                        AWS_IOT_ENDPOINT));
+                            LogError(("Failed to connect new openssl session.\n"));
                         }
                         else
                         {
@@ -1097,7 +1095,6 @@ static void handleIncomingPublish( MQTTContext_t *pMqttContext, MQTTPublishInfo_
                             
                             if(returnStatus == EXIT_SUCCESS)
                             {
-                                LogInfo(("라네는 위대했다.\n"));
                                 mqttSessionEstablished = true;
                                 pSessionPresent = true;
 
@@ -1130,7 +1127,7 @@ static void handleIncomingPublish( MQTTContext_t *pMqttContext, MQTTPublishInfo_
                             else
                             {
                                 set_in_progress = SET_FAILED;
-                                LogInfo(("라네는 실패했다.\n"));
+                                LogInfo(("Failed to connect to MQTT broker.\n"));
                             }
                         }
 					}
