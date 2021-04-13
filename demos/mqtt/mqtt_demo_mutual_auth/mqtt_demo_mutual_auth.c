@@ -2006,6 +2006,19 @@ void signal_handler(int signo)
 
 	exit(1);
 }
+
+void help()
+{
+    printf("Usage : ./mqtt_demo_mutual_auth [options] [message]\n");
+    printf("options:\n");
+    printf("-h : 이 메시지를 출력합니다.\n");
+    printf("-m, --message\t\t\tPublish Payload를 입력합니다.\n");
+    printf("-p, --publish\t\t\tPublish 메시지를 전송합니다.\n");
+    printf("-s, --subscribe\t\t\tSubscribe 메시지를 전송합니다. -t 옵션을 사용하여 Topic을 입력해야합니다.\n");
+    printf("-t, --topic\t\t\tBroker와 연결할 Topic을 설정합니다.(ex : client/test/topic)");
+
+}
+
 int main( int argc, char ** argv )
 {
 	int returnStatus = EXIT_SUCCESS;
@@ -2016,11 +2029,30 @@ int main( int argc, char ** argv )
 	bool clientSessionPresent = false, createCleanSession = false;
 	bool brokerSessionPresent, mqttSessionEstablished = false;
 	struct timespec tp;
+    int c; // getopt options
 
-	( void ) argc;
-	( void ) argv;
 	signal(SIGINT, signal_handler);
+/*
+    while((c = getopt(argc, argv, "hmpst:")) != -1)
+    {
+        switch(c)
+        {
+            case 'h':
 
+            break;
+            case 'm':
+            break;
+            case 'p':
+            break;
+            case 's':
+            break;
+            case 't':
+            break;
+            case '?':
+            break;
+        }
+    }
+*/
 	gSessionPresent = &clientSessionPresent;
 	// Initialize UUID 
 	#if 1
