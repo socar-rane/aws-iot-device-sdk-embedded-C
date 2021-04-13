@@ -57,7 +57,7 @@
  *
  *
 */
-#define AWS_IOT_ENDPOINT               "a2u4h4p5qmhv9v-ats.iot.ap-northeast-2.amazonaws.com"
+#define AWS_IOT_ENDPOINT               "asa3viply1uh2-ats.iot.ap-northeast-2.amazonaws.com"
 
 /**
  * @brief AWS IoT MQTT broker port number.
@@ -91,7 +91,7 @@
 #ifndef ROOT_CA_CERT_PATH
     #define ROOT_CA_CERT_PATH    CERTFILE_PATH"/AmazonRootCA1.crt"
 #endif
-#define EX_CERTID "fdabd67e88"
+#define EX_CERTID "f29963b501"
 
 
 #define PRE_TEMPLATE_PATH "$aws/provisioning-templates/" PRODUCTION_TEMPLATE
@@ -99,7 +99,7 @@
 #define TEMPLATE_REJECT_TOPIC PRE_TEMPLATE_PATH "provision/json/rejected"
 #define CERTIFICATE_ACCEPT_TOPIC "$aws/certificates/create/json/accepted"
 #define CERTIFICATE_REJECT_TOPIC "$aws/certificates/create/json/rejected"
-#define PRODUCTION_TEMPLATE "Rane_provisioning/"
+#define PRODUCTION_TEMPLATE "test-1/"
 
 #define PROVISIONING_CERT_CREATE_TOPIC "$aws/certificates/create/json"
 #define PROVISIONING_TEMPLATE_TOPIC PRE_TEMPLATE_PATH "provision/json"
