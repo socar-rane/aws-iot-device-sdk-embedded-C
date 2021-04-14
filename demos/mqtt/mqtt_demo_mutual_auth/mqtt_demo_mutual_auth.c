@@ -54,6 +54,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <getopt.h>
 #include <time.h>
 #include <signal.h>
 /* POSIX includes. */
@@ -160,7 +161,7 @@
  */
 #define AWS_IOT_MQTT_ALPN               "\x0ex-amzn-mqtt-ca"
 
-#define TOPIC_LENGTH		8
+#define TOPIC_LENGTH		9
 
 /**
  * @brief Length of ALPN protocol name.
@@ -303,7 +304,8 @@ enum
 	MQTT_EX,                // MQTT Example Topic
 	OPENWORLD,              // Create New Session Example Topic
 	PROVISIONING_CC,        // Provisioning Create Certificate Topic
-	PROVISIONING_TT         // Provisioning Template Topic
+	PROVISIONING_TT,         // Provisioning Template Topic
+    USER_PUBSUB
 };
 
 // MQTT Message Identifier
@@ -323,6 +325,17 @@ enum
     RESERVED                // Reserved
 };
 
+// Option Flag Identifier
+enum
+{
+    OPT_C,
+    OPT_F,
+    OPT_M,
+    OPT_P,
+    OPT_S,
+    OPT_T
+};
+
 /**
  * @brief Initialize Topic name
  */
@@ -335,7 +348,8 @@ char TopicFilter[TOPIC_LENGTH][256] = {
 	MQTT_EXAMPLE_TOPIC,
 	"openworld",
 	PROVISIONING_CERT_CREATE_TOPIC,
-	PROVISIONING_TEMPLATE_TOPIC
+	PROVISIONING_TEMPLATE_TOPIC,
+    ""
 };
 
 /**
@@ -350,28 +364,37 @@ uint16_t TopicFilterLength[TOPIC_LENGTH] = {
 	MQTT_EXAMPLE_TOPIC_LENGTH,
 	sizeof("openworld")-1,
 	PROVISIONING_CC_LENGTH,
-	PROVISIONING_TT_LENGTH
+	PROVISIONING_TT_LENGTH,
+    0
 };
 
 /**
  * @brief Publish Payload Message Array 
  */
 
-char MqttExMessage[3][1024] = {
+char MqttExMessage[4][1024] = {
 	"{}",
 	"{}",
-    "{\"service_response\":\"##### RESPONSE FROM PREVIOUSLY FORBIDDEN TOPIC #####\"}"};
+    "{\"service_response\":\"##### RESPONSE FROM PREVIOUSLY FORBIDDEN TOPIC #####\"}",
+    "{}"
+};
 
 /**
  * @brief Publish Payload Message Length Array
  */ 
-uint16_t MqttExMessageLength[3] = {0, };
+uint16_t MqttExMessageLength[4] = {0, };
+
+/// @brief Option Flag
+uint8_t optFlag[6] = {0,};
 
 /// @brief Endpoint Device UUID
 char uuidStr[64] = {0,};
 
 /// @brief New Session Client Identifier 
 char deviceUUID[128] = {0,};
+
+/// @brief default Certificate ID
+char defCertfileId[12] = {0,};
 
 /// @brief Global Certificate ID
 char gCertificateId[16] = {0,};
@@ -1454,8 +1477,8 @@ static int establishMqttSession( MQTTContext_t * pMqttContext,
 	 * unique, such as a device serial number. */
 	if(flag == EX_IDENTIFIER)
 	{
-		connectInfo.pClientIdentifier = CLIENT_IDENTIFIER;
-		connectInfo.clientIdentifierLength = CLIENT_IDENTIFIER_LENGTH;
+		connectInfo.pClientIdentifier = uuidStr;
+		connectInfo.clientIdentifierLength = strlen(uuidStr);
 	}
 	else if(flag == CC_IDENTIFIER)
 	{
@@ -2011,12 +2034,28 @@ void help()
 {
     printf("Usage : ./mqtt_demo_mutual_auth [options] [message]\n");
     printf("options:\n");
+    printf("-c, --cert\t\t\tCertificate ID를 설정합니다. (ex : f29963b501\n");
+    printf("-f, --fleet\t\t\tFleet Provisioning을 수행합니다.\n");
     printf("-h : 이 메시지를 출력합니다.\n");
     printf("-m, --message\t\t\tPublish Payload를 입력합니다.\n");
     printf("-p, --publish\t\t\tPublish 메시지를 전송합니다.\n");
     printf("-s, --subscribe\t\t\tSubscribe 메시지를 전송합니다. -t 옵션을 사용하여 Topic을 입력해야합니다.\n");
     printf("-t, --topic\t\t\tBroker와 연결할 Topic을 설정합니다.(ex : client/test/topic)");
+    
+}
 
+void optionCheck()
+{
+    if((optFlag[OPT_S] == 1) || (optFlag[OPT_P]))
+    {
+        if(optFlag[OPT_T] != 1)
+            exit(0);
+        if(optFlag[OPT_P] == 1)
+        {
+            if(optFlag[OPT_M] != 1)
+                exit(0);
+        }
+    }
 }
 
 int main( int argc, char ** argv )
@@ -2026,33 +2065,94 @@ int main( int argc, char ** argv )
 	MQTTStatus_t mqttStatus = MQTTSuccess;
 	NetworkContext_t networkContext = { 0 };
 	OpensslParams_t opensslParams = { 0 };
+    
 	bool clientSessionPresent = false, createCleanSession = false;
 	bool brokerSessionPresent, mqttSessionEstablished = false;
 	struct timespec tp;
     int c; // getopt options
 
-	signal(SIGINT, signal_handler);
-/*
-    while((c = getopt(argc, argv, "hmpst:")) != -1)
-    {
-        switch(c)
-        {
-            case 'h':
 
-            break;
-            case 'm':
-            break;
-            case 'p':
-            break;
-            case 's':
-            break;
-            case 't':
-            break;
-            case '?':
-            break;
+	signal(SIGINT, signal_handler);
+
+    while(1)
+    {
+        static struct option long_options[] = 
+        {
+            {"cert", required_argument, 0, 'c'},
+            {"fleet", no_argument, 0, 'f'},
+            {"help", no_argument, 0, 'h'},
+            {"message", required_argument, 0, 'm'},
+            {"pub", no_argument, 0, 'p'},
+            {"sub", no_argument, 0, 's'},
+            {"topic", required_argument, 0, 't'}
         }
     }
-*/
+
+    int option_index = 0;
+
+    c = getopt_long(argc, argv, "c:fhm:pst:", long_options, &option_index);
+
+    if(c == -1)
+        break;
+    
+    switch(c)
+    {
+        case 'c':
+            if(strlen(optarg) > 5)
+            {
+                optFlag[OPT_C] = 1;
+                strcpy(defCertfileId, optarg);
+            }
+            else
+                exit(0);
+        break;
+        case 'f':
+            optFlag[OPT_F] = 1;
+        break;
+        case 'h':
+            help();
+            exit(0);
+        break;
+        case 'm':
+        {
+            JSONStatus_t jsonResult = 0;
+            
+            if(strlen(optarg) > 0)
+            {
+                jsonResult = JSON_Validate(optarg, strlen(optarg));
+                if(jsonResult != JSONSuccess)
+                    exit(0);
+                else
+                {
+                    optFlag[OPT_M] = 1;
+                    strcpy(MqttExMessage, optarg);
+                    MqttExMessageLength[3] = strlen(optarg);
+                }
+            }
+        }
+        break;
+        case 'p':
+            optFlag[OPT_P] = 1;
+        break;
+        case 's':
+            optFlag[OPT_S] = 1;
+        break;
+        case 't':
+            if(strlen(optarg) > 0)
+            {
+                optFlag[OPT_T] = 1;
+                strcpy(TopicFilter[USER_PUBSUB], optarg);
+                TopicFilterLength = strlen(optarg);
+            }            
+        break;
+        case '?':
+            help();
+            exit(0);
+        break;
+    }
+
+    optionCheck();
+    
 	gSessionPresent = &clientSessionPresent;
 	// Initialize UUID 
 	#if 1
