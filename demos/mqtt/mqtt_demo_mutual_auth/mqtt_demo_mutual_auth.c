@@ -2149,6 +2149,10 @@ int main( int argc, char ** argv )
                 help();
                 exit(0);
             break;
+            default:
+                help();
+                exit(0);
+            break;
         }
     }
     optionCheck();
