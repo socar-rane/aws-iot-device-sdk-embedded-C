@@ -2085,72 +2085,72 @@ int main( int argc, char ** argv )
             {"pub", no_argument, 0, 'p'},
             {"sub", no_argument, 0, 's'},
             {"topic", required_argument, 0, 't'}
-        }
-    }
-
-    int option_index = 0;
-
-    c = getopt_long(argc, argv, "c:fhm:pst:", long_options, &option_index);
-
-    if(c == -1)
-        break;
+        };
     
-    switch(c)
-    {
-        case 'c':
-            if(strlen(optarg) > 5)
-            {
-                optFlag[OPT_C] = 1;
-                strcpy(defCertfileId, optarg);
-            }
-            else
-                exit(0);
-        break;
-        case 'f':
-            optFlag[OPT_F] = 1;
-        break;
-        case 'h':
-            help();
-            exit(0);
-        break;
-        case 'm':
+
+        int option_index = 0;
+
+        c = getopt_long(argc, argv, "c:fhm:pst:", long_options, &option_index);
+
+        if(c == -1)
+            break;
+    
+        switch(c)
         {
-            JSONStatus_t jsonResult = 0;
-            
-            if(strlen(optarg) > 0)
-            {
-                jsonResult = JSON_Validate(optarg, strlen(optarg));
-                if(jsonResult != JSONSuccess)
-                    exit(0);
-                else
+            case 'c':
+                if(strlen(optarg) > 5)
                 {
-                    optFlag[OPT_M] = 1;
-                    strcpy(MqttExMessage[3], optarg);
-                    MqttExMessageLength[3] = strlen(optarg);
+                    optFlag[OPT_C] = 1;
+                    strcpy(defCertfileId, optarg);
+                }
+                else
+                    exit(0);
+            break;
+            case 'f':
+                optFlag[OPT_F] = 1;
+            break;
+            case 'h':
+                help();
+                exit(0);
+            break;
+            case 'm':
+            {
+                JSONStatus_t jsonResult = 0;
+                
+                if(strlen(optarg) > 0)
+                {
+                    jsonResult = JSON_Validate(optarg, strlen(optarg));
+                    if(jsonResult != JSONSuccess)
+                        exit(0);
+                    else
+                    {
+                        optFlag[OPT_M] = 1;
+                        strcpy(MqttExMessage[3], optarg);
+                        MqttExMessageLength[3] = strlen(optarg);
+                    }
                 }
             }
+            break;
+            case 'p':
+                optFlag[OPT_P] = 1;
+            break;
+            case 's':
+                optFlag[OPT_S] = 1;
+            break;
+            case 't':
+                if(strlen(optarg) > 0)
+                {
+                    optFlag[OPT_T] = 1;
+                    strcpy(TopicFilter[USER_PUBSUB], optarg);
+                    TopicFilterLength[USER_PUBSUB] = strlen(optarg);
+                }            
+            break;
+            case '?':
+                help();
+                exit(0);
+            break;
         }
-        break;
-        case 'p':
-            optFlag[OPT_P] = 1;
-        break;
-        case 's':
-            optFlag[OPT_S] = 1;
-        break;
-        case 't':
-            if(strlen(optarg) > 0)
-            {
-                optFlag[OPT_T] = 1;
-                strcpy(TopicFilter[USER_PUBSUB], optarg);
-                TopicFilterLength[USER_PUBSUB] = strlen(optarg);
-            }            
-        break;
-        case '?':
-            help();
-            exit(0);
-        break;
     }
-
     optionCheck();
 
 	gSessionPresent = &clientSessionPresent;
