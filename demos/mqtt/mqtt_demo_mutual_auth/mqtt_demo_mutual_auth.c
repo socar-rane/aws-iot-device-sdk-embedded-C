@@ -2125,7 +2125,7 @@ int main( int argc, char ** argv )
                 else
                 {
                     optFlag[OPT_M] = 1;
-                    strcpy(MqttExMessage, optarg);
+                    strcpy(MqttExMessage[3], optarg);
                     MqttExMessageLength[3] = strlen(optarg);
                 }
             }
@@ -2142,7 +2142,7 @@ int main( int argc, char ** argv )
             {
                 optFlag[OPT_T] = 1;
                 strcpy(TopicFilter[USER_PUBSUB], optarg);
-                TopicFilterLength = strlen(optarg);
+                TopicFilterLength[USER_PUBSUB] = strlen(optarg);
             }            
         break;
         case '?':
@@ -2152,7 +2152,7 @@ int main( int argc, char ** argv )
     }
 
     optionCheck();
-    
+
 	gSessionPresent = &clientSessionPresent;
 	// Initialize UUID 
 	#if 1
