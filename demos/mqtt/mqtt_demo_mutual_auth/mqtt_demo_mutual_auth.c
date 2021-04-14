@@ -788,6 +788,12 @@ static int connectToServerWithBackoffRetries( NetworkContext_t * pNetworkContext
     switch(flag)
     {
         case EX_IDENTIFIER:
+            if(optFlag[OPT_C] != 1)
+            {
+                memset(defCertfileId, 0, sizeof(defCertfileId));
+                strcpy(defCertfileId, EX_CERTID);
+            }
+            LogDebug(("Set Certificate ID : %s", defCertfileId));
             sprintf(certfilePath, "%s/%s-certificate.pem.crt", CERTFILE_PATH, EX_CERTID);
             sprintf(privatefilePath, "%s/%s-private.pem.key", CERTFILE_PATH, EX_CERTID);
         break;
