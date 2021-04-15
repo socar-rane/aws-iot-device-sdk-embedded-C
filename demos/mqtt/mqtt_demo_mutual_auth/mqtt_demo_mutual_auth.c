@@ -1081,6 +1081,7 @@ static void handleIncomingPublish( MQTTContext_t *pMqttContext, MQTTPublishInfo_
 
 			else if (i == TEMPLATE_ACCEPT)
 			{
+                unsubscribeFleetTopic(pMqttContext);
                 set_in_progress = SET_IN_PROGRESS;
 				returnStatus = disconnectMqttSession( pMqttContext );
 
@@ -1772,12 +1773,12 @@ static void initPublishMessage()
 		MqttExMessageLength[i] = strlen(MqttExMessage[i]);
 }
 
-static int subscribeAllTopic(MQTTContext_t *InmqttContext, MQTTStatus_t *InmqttStatus)
+static int subscribeFleetTopic(MQTTContext_t *InmqttContext, MQTTStatus_t *InmqttStatus)
 {
 	int i = 0;
 	int returnStatus = EXIT_SUCCESS;
 	
-	for(i = 0 ; i < 5 ; i++)
+	for(i = 0 ; i < 4 ; i++)
 	{
 		if(returnStatus == EXIT_SUCCESS)
 		{
@@ -1802,9 +1803,34 @@ static int subscribeAllTopic(MQTTContext_t *InmqttContext, MQTTStatus_t *InmqttS
 			returnStatus = handleResubscribe( InmqttContext, i );
 		}
 	}
-
 	return returnStatus;
+}
 
+static int unsubscribeFleetTopic(MQTTContext_t *InmqttContext)
+{
+    int i = 0;
+	int returnStatus = EXIT_SUCCESS;
+	MqttStatus_t mqttStatus;
+
+	for(i = 0 ; i < 4 ; i++)
+	{
+		if(returnStatus == EXIT_SUCCESS)
+		{
+			LogInfo( ( "Subscribing to the MQTT topic %.*s. Index : %d",
+						TopicFilterLength[i],
+						TopicFilter[i], i ) );
+			returnStatus = unsubscribeFromTopic( InmqttContext, i );
+			mqttStatus = MQTT_ProcessLoop( InmqttContext, MQTT_PROCESS_LOOP_TIMEOUT_MS );
+
+			if( mqttStatus != MQTTSuccess )
+			{
+				returnStatus = EXIT_FAILURE;
+				LogError( ( "MQTT_ProcessLoop returned with status = %s.",
+							MQTT_Status_strerror( mqttStatus ) ) );
+			}
+		}
+	}
+	return returnStatus;
 }
 
 static int subscribePublishLoop( MQTTContext_t * pMqttContext,
@@ -2046,7 +2072,7 @@ void help()
     printf("-m, --message\t\t\tPublish Payload를 입력합니다.\n");
     printf("-p, --publish\t\t\tPublish 메시지를 전송합니다.\n");
     printf("-s, --subscribe\t\t\tSubscribe 메시지를 전송합니다. -t 옵션을 사용하여 Topic을 입력해야합니다.\n");
-    printf("-t, --topic\t\t\tBroker와 연결할 Topic을 설정합니다.(ex : client/test/topic)");
+    printf("-t, --topic\t\t\tBroker와 연결할 Topic을 설정합니다.(ex : client/test/topic)\n");
     
 }
 
@@ -2234,30 +2260,33 @@ int main( int argc, char ** argv )
 			}
 		}
 
-		returnStatus = subscribeAllTopic(&mqttContext, &mqttStatus);
+        if(optFlag[OPT_F] == 1)
+        {
+            returnStatus = subscribeFleetTopic(&mqttContext, &mqttStatus);
 
-		publishToTopic(&mqttContext, PROVISIONING_CC, 0);
-		
-		for( ; ; )
-		{
+            publishToTopic(&mqttContext, PROVISIONING_CC, 0);
+            
+            for( ; ; )
+            {
 
-			// MQTT 브로커에 연결을 시도한다. 만약 연결이 실패했을 경우 Timeout 이후 재시도한다.
-			// EXIT_FAILURE 발생 시 TCP Connection에 실패한 것을 의미함.
-            //if(set_in_progress == SET_COMPLETE)
-            //{
-                mqttStatus = MQTT_ProcessLoop( &mqttContext, MQTT_PROCESS_LOOP_TIMEOUT_MS );
-                if( returnStatus == EXIT_SUCCESS )
-                {
-                    /* Log message indicating an iteration completed successfully. */
-                    LogInfo( ( "Demo completed successfully." ) );
-                }
+                // MQTT 브로커에 연결을 시도한다. 만약 연결이 실패했을 경우 Timeout 이후 재시도한다.
+                // EXIT_FAILURE 발생 시 TCP Connection에 실패한 것을 의미함.
+                //if(set_in_progress == SET_COMPLETE)
+                //{
+                    mqttStatus = MQTT_ProcessLoop( &mqttContext, MQTT_PROCESS_LOOP_TIMEOUT_MS );
+                    if( returnStatus == EXIT_SUCCESS )
+                    {
+                        /* Log message indicating an iteration completed successfully. */
+                        LogInfo( ( "Demo completed successfully." ) );
+                    }
 
 
 
-                LogInfo( ( "Short delay before starting the next iteration....\n" ) );
-            //}
-			sleep( 1 );
-		}
+                    LogInfo( ( "Short delay before starting the next iteration....\n" ) );
+                //}
+                sleep( 1 );
+            }
+        }
 		/* End TLS session, then close TCP connection. */
 		( void ) Openssl_Disconnect( &networkContext );
 	}
