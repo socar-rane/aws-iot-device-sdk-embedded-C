@@ -2132,7 +2132,7 @@ int main( int argc, char ** argv )
 
         int option_index = 0;
 
-        c = getopt_long(argc, argv, "c:C:fhm:pst:", long_options, &option_index);
+        c = getopt_long(argc, argv, "c:C:fhm:p:st:", long_options, &option_index);
 
         if(c == -1)
             break;
