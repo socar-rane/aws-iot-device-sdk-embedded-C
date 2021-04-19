@@ -2092,15 +2092,49 @@ void help()
 
 void optionCheck()
 {
+    int count = 0, i = 0;
+
+    for(i = 0 ; i < 7 ; i++)
+    {
+        count++;
+    }
+    if(count == 0)
+        exit(0);
+
     if(optFlag[OPT_S] == 1)
     {
         if(optFlag[OPT_P] != 0)
             exit(0);
-            
+
         if(optFlag[OPT_T] != 1)
+            exit(0);
+        
+        if(optFlag[OPT_F] != 0)
+            exit(0);
+    }
+
+    if(optFlag[OPT_P] > 0)
+    {
+        if(optFlag[OPT_T] != 1)
+            exit(0);
+
+        if(optFlag[OPT_S] != 0)
+            exit(0);
+
+        if(optFlag[OPT_F] != 0)
+            exit(0);
+    }
+
+    if(optFlag[OPT_F] != 0)
+    {
+        if(optFlag[OPT_S] != 0)
+            exit(0);
+        
+        if(optFlag[OPT_P] != 0)
             exit(0);
     }
 }
+
 
 int main( int argc, char ** argv )
 {
