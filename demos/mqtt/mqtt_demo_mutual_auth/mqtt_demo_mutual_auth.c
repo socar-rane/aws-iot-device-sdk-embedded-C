@@ -2100,39 +2100,61 @@ void optionCheck()
             count++;
     }
     if(count == 0)
+    {
+        help();
         exit(0);
+    }
 
     if(optFlag[OPT_S] == 1)
     {
         if(optFlag[OPT_P] != 0)
+        {
+            help();
             exit(0);
+        }
 
         if(optFlag[OPT_T] != 1)
+        {
+            help();
             exit(0);
+        }        
         
         if(optFlag[OPT_F] != 0)
+        {
+            help();
             exit(0);
+        }
     }
 
     if(optFlag[OPT_P] > 0)
     {
-        if(optFlag[OPT_T] != 1)
+        if(optFlag[OPT_T] != 1){
+            help();
             exit(0);
+        }
 
-        if(optFlag[OPT_S] != 0)
+        if(optFlag[OPT_S] != 0){
+            help();
             exit(0);
+        }
 
-        if(optFlag[OPT_F] != 0)
+        if(optFlag[OPT_F] != 0){
+            help();
             exit(0);
+        }
     }
 
     if(optFlag[OPT_F] != 0)
     {
-        if(optFlag[OPT_S] != 0)
+        if(optFlag[OPT_S] != 0){
+            help();
             exit(0);
+        }
         
-        if(optFlag[OPT_P] != 0)
+        if(optFlag[OPT_P] != 0){
+            help();
             exit(0);
+        }
     }
 }
 
