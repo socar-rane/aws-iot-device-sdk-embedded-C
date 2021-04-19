@@ -2092,8 +2092,11 @@ void help()
 
 void optionCheck()
 {
-    if((optFlag[OPT_S] == 1) || (optFlag[OPT_P] != 0))
+    if(optFlag[OPT_S] == 1)
     {
+        if(optFlag[OPT_P] != 0)
+            exit(0);
+            
         if(optFlag[OPT_T] != 1)
             exit(0);
     }
@@ -2188,8 +2191,7 @@ int main( int argc, char ** argv )
             }
             break;
             case 'p':
-                optFlag[OPT_P] = 1;
-                printf("publish : %s\n", optarg);
+                optFlag[OPT_P] = atoi(optarg);
             break;
             case 's':
                 optFlag[OPT_S] = 1;
@@ -2308,7 +2310,20 @@ int main( int argc, char ** argv )
             }
         }
         else if(optFlag[OPT_P] == 1)
+        {
             returnStatus = publishToTopic(&mqttContext, USER_PUBSUB, 3);
+            mqttStatus = MQTT_ProcessLoop( &mqttContext, MQTT_PROCESS_LOOP_TIMEOUT_MS );
+                
+            if( mqttStatus != MQTTSuccess)
+            {
+                /* Log message indicating an iteration completed successfully. */
+                LogError( ( "MQTT_ProcessLoop returned with status = %s.",
+                    MQTT_Status_strerror( mqttStatus ) ) );
+                returnStatus = EXIT_FAILURE;
+                LogInfo( ( "Demo completed successfully." ) );
+            }
+            gLoop = 0;
+        }
 
         while(gLoop)
         {
@@ -2328,6 +2343,8 @@ int main( int argc, char ** argv )
                     }
                 }
                 #endif
+                if(optFlag[OPT_P] == 2)
+                    returnStatus = publishToTopic(&mqttContext, USER_PUBSUB, 3);
                 mqttStatus = MQTT_ProcessLoop( &mqttContext, MQTT_PROCESS_LOOP_TIMEOUT_MS );
                 
                 if( mqttStatus != MQTTSuccess)
