@@ -490,6 +490,13 @@ NetworkContext_t gNetworkContext = { 0 };
 /*-----------------------------------------------------------*/
 
 /**
+ * @brief Unsubscribe Fleet Provisioning Topics
+ * 
+ * @param[in] InmqttContext Input MQTT Connection Information
+ */
+static int unsubscribeFleetTopic(MQTTContext_t *InmqttContext);
+
+/**
  * @brief Convert JSON to Cert file functions
  * 
  * @param[in] inStr Input JSON String
@@ -1814,7 +1821,7 @@ static int unsubscribeFleetTopic(MQTTContext_t *InmqttContext)
 {
     int i = 0;
 	int returnStatus = EXIT_SUCCESS;
-	MqttStatus_t mqttStatus;
+	MQTTStatus_t mqttStatus;
 
 	for(i = 0 ; i < 4 ; i++)
 	{
