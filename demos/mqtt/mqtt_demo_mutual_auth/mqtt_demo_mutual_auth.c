@@ -2096,7 +2096,8 @@ void optionCheck()
 
     for(i = 0 ; i < 7 ; i++)
     {
-        count++;
+        if(optFlag[i] != 0)
+            count++;
     }
     if(count == 0)
         exit(0);
