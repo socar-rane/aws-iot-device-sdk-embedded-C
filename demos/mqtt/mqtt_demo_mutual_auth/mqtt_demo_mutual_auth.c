@@ -329,6 +329,7 @@ enum
 enum
 {
     OPT_C,
+    OPT_CL,
     OPT_F,
     OPT_M,
     OPT_P,
@@ -385,7 +386,7 @@ char MqttExMessage[4][1024] = {
 uint16_t MqttExMessageLength[4] = {0, };
 
 /// @brief Option Flag
-uint8_t optFlag[6] = {0,};
+uint8_t optFlag[7] = {0,};
 
 /// @brief Endpoint Device UUID
 char uuidStr[64] = {0,};
@@ -410,6 +411,9 @@ char queryCertificate[4][64] =
 
 /// @brief Client Session Present Flag
 bool *gSessionPresent;
+
+/// @brief Global Loop Flag
+int gLoop = 1;
 
 /// @brief Set in progress Flag
 int set_in_progress = 0;
@@ -1816,18 +1820,21 @@ static int unsubscribeFleetTopic(MQTTContext_t *InmqttContext)
 	{
 		if(returnStatus == EXIT_SUCCESS)
 		{
-			LogInfo( ( "Subscribing to the MQTT topic %.*s. Index : %d",
+			LogInfo( ( "Unsubscribe to the MQTT topic %.*s. Index : %d",
 						TopicFilterLength[i],
 						TopicFilter[i], i ) );
 			returnStatus = unsubscribeFromTopic( InmqttContext, i );
-			mqttStatus = MQTT_ProcessLoop( InmqttContext, MQTT_PROCESS_LOOP_TIMEOUT_MS );
+            if(returnStatus == EXIT_SUCCESS)
+            {
+                mqttStatus = MQTT_ProcessLoop( InmqttContext, MQTT_PROCESS_LOOP_TIMEOUT_MS );
 
-			if( mqttStatus != MQTTSuccess )
-			{
-				returnStatus = EXIT_FAILURE;
-				LogError( ( "MQTT_ProcessLoop returned with status = %s.",
-							MQTT_Status_strerror( mqttStatus ) ) );
-			}
+                if( mqttStatus != MQTTSuccess )
+                {
+                    returnStatus = EXIT_FAILURE;
+                    LogError( ( "MQTT_ProcessLoop returned with status = %s.",
+                                MQTT_Status_strerror( mqttStatus ) ) );
+                }
+            }
 		}
 	}
 	return returnStatus;
@@ -2058,8 +2065,7 @@ static int subscribePublishLoop( MQTTContext_t * pMqttContext,
  */
 void signal_handler(int signo)
 {
-
-	exit(1);
+    gLoop = 0;
 }
 
 void help()
@@ -2067,12 +2073,13 @@ void help()
     printf("Usage : ./mqtt_demo_mutual_auth [options] [message]\n");
     printf("options:\n");
     printf("-c, --cert\t\t\tCertificate ID를 설정합니다. (ex : f29963b501\n");
+    printf("-C, --client\t\t\tClient Identifier를 설정합니다.\n");
     printf("-f, --fleet\t\t\tFleet Provisioning을 수행합니다.\n");
     printf("-h : 이 메시지를 출력합니다.\n");
     printf("-m, --message\t\t\tPublish Payload를 입력합니다.\n");
-    printf("-p, --publish\t\t\tPublish 메시지를 전송합니다.\n");
+    printf("-p, --publish\t\t\tPublish 메시지를 전송합니다. -t 옵션을 사용하여 Topic을 입력해야합니다. (1 : 한 번 전송, 2 : 반복하여 전송)\n");
     printf("-s, --subscribe\t\t\tSubscribe 메시지를 전송합니다. -t 옵션을 사용하여 Topic을 입력해야합니다.\n");
-    printf("-t, --topic\t\t\tBroker와 연결할 Topic을 설정합니다.(ex : client/test/topic)\n");
+    printf("-t, --topic\t\t\tPublish / Subscribe할 Topic을 설정합니다.(ex : client/test/topic)\n");
     
 }
 
@@ -2111,6 +2118,7 @@ int main( int argc, char ** argv )
         static struct option long_options[] = 
         {
             {"cert", required_argument, 0, 'c'},
+            {"client", required_argument, 0, 'C'},
             {"fleet", no_argument, 0, 'f'},
             {"help", no_argument, 0, 'h'},
             {"message", required_argument, 0, 'm'},
@@ -2122,7 +2130,7 @@ int main( int argc, char ** argv )
 
         int option_index = 0;
 
-        c = getopt_long(argc, argv, "c:fhm:pst:", long_options, &option_index);
+        c = getopt_long(argc, argv, "c:C:fhm:pst:", long_options, &option_index);
 
         if(c == -1)
             break;
@@ -2134,6 +2142,15 @@ int main( int argc, char ** argv )
                 {
                     optFlag[OPT_C] = 1;
                     strcpy(defCertfileId, optarg);
+                }
+                else
+                    exit(0);
+            break;
+            case 'C':
+                if(strlen(optarg) > 2)
+                {
+                    optFlag[OPT_CL] = 1;
+                    strcpy(uuidStr, optarg);
                 }
                 else
                     exit(0);
@@ -2161,10 +2178,15 @@ int main( int argc, char ** argv )
                         MqttExMessageLength[3] = strlen(optarg);
                     }
                 }
+                else
+                {
+                    strcpy(MqttExMessage[3], "{}");
+                    MqttExMessageLength[3] = strlen(MqttExMessage[3]);
+                }
             }
             break;
             case 'p':
-                optFlag[OPT_P] = 1;
+                optFlag[OPT_P] = atoi(optarg);
             break;
             case 's':
                 optFlag[OPT_S] = 1;
@@ -2191,7 +2213,7 @@ int main( int argc, char ** argv )
 
 	gSessionPresent = &clientSessionPresent;
 	// Initialize UUID 
-	#if 1
+	if(optFlag[OPT_CL] != 1)
 	{
 		FILE *fp = fopen(UUID_FILE_PATH, "r");
 		char buffer[40] = {0, };
@@ -2205,7 +2227,7 @@ int main( int argc, char ** argv )
 		}
 		fclose(fp);
 	}
-	#endif
+	
 	//strcpy(uuidStr, "1234567-abcde-fghij-klmno-1234567abc-TLS350");
 	/* Set the pParams member of the network context with desired transport. */
 	networkContext.pParams = &opensslParams;
@@ -2265,52 +2287,83 @@ int main( int argc, char ** argv )
             returnStatus = subscribeFleetTopic(&mqttContext, &mqttStatus);
 
             publishToTopic(&mqttContext, PROVISIONING_CC, 0);
-            
-            for( ; ; )
+        }
+        else if(optFlag[OPT_S] == 1)
+        {
+            returnStatus = subscribeToTopic(&mqttContext, USER_PUBSUB);
+
+            if(returnStatus == EXIT_SUCCESS)
             {
+                mqttStatus = MQTT_ProcessLoop(&mqttContext, MQTT_PROCESS_LOOP_TIMEOUT_MS);
 
-                // MQTT 브로커에 연결을 시도한다. 만약 연결이 실패했을 경우 Timeout 이후 재시도한다.
-                // EXIT_FAILURE 발생 시 TCP Connection에 실패한 것을 의미함.
-                //if(set_in_progress == SET_COMPLETE)
-                //{
-                    mqttStatus = MQTT_ProcessLoop( &mqttContext, MQTT_PROCESS_LOOP_TIMEOUT_MS );
-                    if( returnStatus == EXIT_SUCCESS )
-                    {
-                        /* Log message indicating an iteration completed successfully. */
-                        LogInfo( ( "Demo completed successfully." ) );
-                    }
-
-
-
-                    LogInfo( ( "Short delay before starting the next iteration....\n" ) );
-                //}
-                sleep( 1 );
+                if(mqttStatus != MQTTSuccess)
+                {
+                    returnStatus = EXIT_FAILURE;
+                    LogError( ( "MQTT_ProcessLoop returned with status = %s.",
+                        MQTT_Status_strerror( mqttStatus ) ) );
+                }
             }
         }
-		/* End TLS session, then close TCP connection. */
-		( void ) Openssl_Disconnect( &networkContext );
-	}
-	if( returnStatus == EXIT_SUCCESS )
-	{
-		/* Unsubscribe from the topic. */
-		LogInfo( ( "Unsubscribing from the MQTT topic %.*s.",
-					MQTT_EXAMPLE_TOPIC_LENGTH,
-					MQTT_EXAMPLE_TOPIC ) );
-		returnStatus = unsubscribeFromTopic( &mqttContext, 4 );
-	}
-	if( returnStatus == EXIT_SUCCESS )
-	{
-		/* Process Incoming UNSUBACK packet from the broker. */
-		mqttStatus = MQTT_ProcessLoop( &mqttContext, MQTT_PROCESS_LOOP_TIMEOUT_MS );
+        else if(optFlag[OPT_P] == 1)
+            returnStatus = publishToTopic(&mqttContext, USER_PUBSUB, 3);
 
-		if( mqttStatus != MQTTSuccess )
-		{
-			returnStatus = EXIT_FAILURE;
-			LogError( ( "MQTT_ProcessLoop returned with status = %s.",
-						MQTT_Status_strerror( mqttStatus ) ) );
-		}
-	}
+        while(gLoop)
+        {
+            // MQTT 브로커에 연결을 시도한다. 만약 연결이 실패했을 경우 Timeout 이후 재시도한다.
+            // EXIT_FAILURE 발생 시 TCP Connection에 실패한 것을 의미함.
+            if(set_in_progress == SET_COMPLETE)
+            {
+                #if 0
+                if(optFlag[OPT_F] == 1 || optFlag[OPT_S] == 1)
+                {
+                    if((returnStatus == EXIT_SUCCESS) && (globalSubAckStatus == MQTTSubAckFailure))
+                    {
+                        LogInfo( ( "Server rejected initial subscription request. Attempting to re-subscribe to topic %.*s.",
+                            MQTT_EXAMPLE_TOPIC_LENGTH,
+                            MQTT_EXAMPLE_TOPIC ) );
+                        returnStatus = handleResubscribe( pMqttContext );
+                    }
+                }
+                #endif
+                mqttStatus = MQTT_ProcessLoop( &mqttContext, MQTT_PROCESS_LOOP_TIMEOUT_MS );
+                
+                if( mqttStatus != MQTTSuccess)
+                {
+                    /* Log message indicating an iteration completed successfully. */
+                    LogError( ( "MQTT_ProcessLoop returned with status = %s.",
+                        MQTT_Status_strerror( mqttStatus ) ) );
+                    returnStatus = EXIT_FAILURE;
+                    LogInfo( ( "Demo completed successfully." ) );
+                }
+                LogInfo( ( "Short delay before starting the next iteration....\n" ) );
+            }
+            sleep( 1 );
+        }
 
+        if(optFlag[OPT_F] == 1 || optFlag[OPT_S] == 1)
+        {
+            if(returnStatus == EXIT_SUCCESS)
+            {
+                if(optFlag[OPT_F] == 1)
+                    returnStatus = unsubscribeFromTopic(&mqttContext, OPENWORLD);
+                else if(optFlag[OPT_S] == 1)
+                    returnStatus = unsubscribeFromTopic(&mqttContext, USER_PUBSUB);
+
+                if(returnStatus == EXIT_SUCCESS)
+                {
+                    mqttStatus = MQTT_ProcessLoop(&mqttContext, MQTT_PROCESS_LOOP_TIMEOUT_MS);
+
+                    if(mqttStatus != MQTTSuccess)
+                    {
+                        returnStatus = EXIT_FAILURE;
+                        LogError( ( "MQTT_ProcessLoop returned with status = %s.",
+                        MQTT_Status_strerror( mqttStatus ) ) );
+                    }
+                }
+            }
+        }
+		
+	}
 	/* Send an MQTT Disconnect packet over the already connected TCP socket.
 	 * There is no corresponding response for the disconnect packet. After sending
 	 * disconnect, client must close the network connection. */
@@ -2330,6 +2383,9 @@ int main( int argc, char ** argv )
 		{
 			returnStatus = disconnectMqttSession( &mqttContext );
 		}
+
+        /* End TLS session, then close TCP connection. */
+		( void ) Openssl_Disconnect( &networkContext );
 	}
 
 	return returnStatus;
