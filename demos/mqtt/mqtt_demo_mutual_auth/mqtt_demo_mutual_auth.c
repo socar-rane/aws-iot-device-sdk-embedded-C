@@ -2092,15 +2092,10 @@ void help()
 
 void optionCheck()
 {
-    if((optFlag[OPT_S] == 1) || (optFlag[OPT_P]))
+    if((optFlag[OPT_S] == 1) || (optFlag[OPT_P] != 0))
     {
         if(optFlag[OPT_T] != 1)
             exit(0);
-        if(optFlag[OPT_P] == 1)
-        {
-            if(optFlag[OPT_M] != 1)
-                exit(0);
-        }
     }
 }
 
@@ -2193,7 +2188,8 @@ int main( int argc, char ** argv )
             }
             break;
             case 'p':
-                optFlag[OPT_P] = atoi(optarg);
+                optFlag[OPT_P] = 1;
+                printf("publish : %s\n", optarg);
             break;
             case 's':
                 optFlag[OPT_S] = 1;
