@@ -99,7 +99,7 @@
 #define TEMPLATE_REJECT_TOPIC PRE_TEMPLATE_PATH "provision/json/rejected"
 #define CERTIFICATE_ACCEPT_TOPIC "$aws/certificates/create/json/accepted"
 #define CERTIFICATE_REJECT_TOPIC "$aws/certificates/create/json/rejected"
-#define PRODUCTION_TEMPLATE "test-1/"
+#define PRODUCTION_TEMPLATE "MS_Rane_Provisioning/"
 
 #define PROVISIONING_CERT_CREATE_TOPIC "$aws/certificates/create/json"
 #define PROVISIONING_TEMPLATE_TOPIC PRE_TEMPLATE_PATH "provision/json"
