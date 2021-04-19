@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    os.system("./mqtt_demo_mutual_auth&")
+    os.system("./mqtt_demo_mutual_auth -f &")
     return "hello World"
 
 def add_arguments():
