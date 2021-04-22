@@ -1,7 +1,7 @@
 
-# AWS IoT Device SDK for Embedded C
+# AWS IoT Device SDK for Embedded C (feat. MS팀 라네)
 
-## Table of Contents
+## 목차
 
 * [Overview](#overview)
     * [License](#license)
@@ -59,11 +59,7 @@
 
 ## Overview
 
-The AWS IoT Device SDK for Embedded C (C-SDK) is a collection of C source files under the [MIT open source license](LICENSE) that can be used in embedded applications to securely connect IoT devices to [AWS IoT Core](https://docs.aws.amazon.com/iot/latest/developerguide/what-is-aws-iot.html). It contains MQTT client, HTTP client, JSON Parser, AWS IoT Device Shadow, AWS IoT Jobs, and AWS IoT Device Defender libraries. This SDK is distributed in source form, and can be built into customer firmware along with application code, other libraries and an operating system (OS) of your choice. These libraries are only dependent on standard C libraries, so they can be ported to various OS's - from embedded Real Time Operating Systems (RTOS) to Linux/Mac/Windows. You can find sample usage of C-SDK libraries on POSIX systems using OpenSSL (e.g. [Linux demos](demos) in this repository), and on [FreeRTOS](https://github.com/FreeRTOS/FreeRTOS/) using mbedTLS (e.g. [FreeRTOS demos](https://github.com/FreeRTOS/FreeRTOS/tree/master/FreeRTOS-Plus/Demo) in [FreeRTOS](https://github.com/FreeRTOS/FreeRTOS/) repository).
-
-For the latest release of C-SDK, please see the section for [Releases](#releases).
-
-**C-SDK includes libraries that are part of the [FreeRTOS 202012.01 LTS](https://github.com/FreeRTOS/FreeRTOS-LTS/tree/202012.01-LTS) release. Learn more about the FreeRTOS 202012.01 LTS libraries by [clicking here](https://freertos.org/lts-libraries.html).**
+AWS IoT Device SDK for Embedded C는 C언어 기반의 AWS IoT Core와 통신할 수 있는 소스코드입니다. MQTT client, HTTP client, JSON Parser, AWS IoT Device Shadow, AWS IoT Jobs, AWS IoT Device Defender 라이브러리가 함께 포함되어 있습니다. 브랜치는 main, sub_master, v4_deprecated로 나뉘지만 현재 프로비저닝 코드가 포함된 브랜치는 sub_master 브랜치입니다. [AWS IoT Core](https://docs.aws.amazon.com/iot/latest/developerguide/what-is-aws-iot.html) 개발 가이드를 참고하여 개발했으며 추가적으로 참고할 사항이 있을 경우 이 링크를 참고하시면 됩니다.
 
 ### License
 
@@ -71,19 +67,16 @@ The C-SDK libraries are licensed under the [MIT open source license](LICENSE).
 
 ### Features
 
-C-SDK simplifies access to various AWS IoT services. C-SDK has been tested to work with [AWS IoT Core](https://docs.aws.amazon.com/iot/latest/developerguide/what-is-aws-iot.html) and an open source MQTT broker to ensure interoperability. The AWS IoT Device Shadow, AWS IoT Jobs, and AWS IoT Device Defender libraries are flexible to work with any MQTT client and JSON parser. The MQTT client and JSON parser libraries are offered as choices without being tightly coupled with the rest of the SDK. C-SDK contains the following libraries:
+C-SDK는 다양한 AWS IoT 서비스에 쉽게 접근할 수 있습니다. C-SDK는 [AWS IoT Core](https://docs.aws.amazon.com/iot/latest/developerguide/what-is-aws-iot.html)와 함께 테스트를 진행했습니다. 사물, 정책, 인증서, 플릿 프로비저닝 템플릿 등 MQTT에 관련된 사항들이 있으니 문서를 참고하여 사전 설정을 마쳐야합니다. 이러한 작업들을 수행하기 위하여 아래 라이브러리가 포함되어 있습니다. 
 
 #### coreMQTT
+
+[coreMQTT](https://github.com/FreeRTOS/coreMQTT) 라이브러리는 브로커와 MQTT connection을 제공하고 TLS 세션 또는 암호화되지 않은 채널의 연결을 허용합니다. 이 MQTT connection은 MQTT Topic을 Publish하거나 Subscribe할 수 있습니다. 
 
 The [coreMQTT](https://github.com/FreeRTOS/coreMQTT) library provides the ability to establish an MQTT connection with a broker over a customer-implemented transport layer, which can either be a secure channel like a TLS session (mutually authenticated or server-only authentication) or a non-secure channel like a plaintext TCP connection. This MQTT connection can be used for performing publish operations to MQTT topics and subscribing to MQTT topics. The library provides a mechanism to register customer-defined callbacks for receiving incoming PUBLISH, acknowledgement and keep-alive response events from the broker. The library has been refactored for memory optimization and is compliant with the [MQTT 3.1.1](https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html) standard. It has no dependencies on any additional libraries other than the standard C library, a customer-implemented network transport interface, and optionally a customer-implemented platform time function. The refactored design embraces different use-cases, ranging from resource-constrained platforms using only QoS 0 MQTT PUBLISH messages to resource-rich platforms using QoS 2 MQTT PUBLISH over TLS connections.
 
 See memory requirements for the latest release [here](https://docs.aws.amazon.com/embedded-csdk/202103.00/lib-ref/libraries/standard/coreMQTT/docs/doxygen/output/html/index.html#mqtt_memory_requirements).
 
-#### coreHTTP
-
-The [coreHTTP](https://github.com/FreeRTOS/coreHTTP) library provides the ability to establish an HTTP connection with a server over a customer-implemented transport layer, which can either be a secure channel like a TLS session (mutually authenticated or server-only authentication) or a non-secure channel like a plaintext TCP connection. The HTTP connection can be used to make "GET" (include range requests), "PUT", "POST" and "HEAD" requests. The library provides a mechanism to register a customer-defined callback for receiving parsed header fields in an HTTP response. The library has been refactored for memory optimization, and is a client implementation of a subset of the [HTTP/1.1](https://tools.ietf.org/html/rfc2616) standard.
-
-See memory requirements for the latest release [here](https://docs.aws.amazon.com/embedded-csdk/202103.00/lib-ref/libraries/standard/coreHTTP/docs/doxygen/output/html/index.html#http_memory_requirements).
 
 #### coreJSON
 
@@ -91,203 +84,16 @@ The [coreJSON](https://github.com/FreeRTOS/coreJSON) library is a JSON parser th
 
 See memory requirements for the latest release [here](https://docs.aws.amazon.com/embedded-csdk/202103.00/lib-ref/libraries/standard/coreJSON/docs/doxygen/output/html/index.html#json_memory_requirements).
 
-#### corePKCS11
-
-The [corePKCS11](https://github.com/FreeRTOS/corePKCS11) library is an implementation of the PKCS #11 interface (API) that makes it easier to develop applications that rely on cryptographic operations. Only a subset of the [PKCS #11 v2.4](https://docs.oasis-open.org/pkcs11/pkcs11-base/v2.40/os/pkcs11-base-v2.40-os.html) standard has been implemented, with a focus on operations involving asymmetric keys, random number generation, and hashing.
-
-The Cryptoki or PKCS #11 standard defines a platform-independent API to manage and use cryptographic tokens. The name, "PKCS #11", is used interchangeably to refer to the API itself and the standard which defines it.
-
-The PKCS #11 API is useful for writing software without taking a dependency on any particular implementation or hardware. By writing against the PKCS #11 standard interface, code can be used interchangeably with multiple algorithms, implementations and hardware. 
-
-Generally vendors for secure cryptoprocessors such as Trusted Platform Module ([TPM](https://en.wikipedia.org/wiki/Trusted_Platform_Module)), Hardware Security Module ([HSM](https://en.wikipedia.org/wiki/Hardware_security_module)), Secure Element, or any other type of secure hardware enclave, distribute a PKCS #11 implementation with the hardware. 
-The purpose of corePKCS11 mock is therefore to provide a PKCS #11 implementation that allows for rapid prototyping and development before switching to a cryptoprocessor specific PKCS #11 implementation in production devices.
-
-Since the PKCS #11 interface is defined as part of the PKCS #11 [specification](https://docs.oasis-open.org/pkcs11/pkcs11-base/v2.40/os/pkcs11-base-v2.40-os.html) replacing corePKCS11 with another implementation 
-should require little porting effort, as the interface will not change. The system tests distributed in corePKCS11 repository can be leveraged to verify the behavior of a different implementation is similar to corePKCS11.
-
-See memory requirements for the latest release [here](https://docs.aws.amazon.com/embedded-csdk/202103.00/lib-ref/libraries/standard/corePKCS11/docs/doxygen/output/html/pkcs11_design.html#pkcs11_memory_requirements).
-
-#### AWS IoT Device Shadow
-
-The AWS IoT Device Shadow library enables you to store and retrieve the current state one or more shadows of every registered device. A device’s shadow is a persistent, virtual representation of your device that you can interact with from AWS IoT Core even if the device is offline. The device state is captured in its "shadow" is represented as a [JSON](https://www.json.org/) document. The device can send commands over MQTT to get, update and delete its latest state as well as receive notifications over MQTT about changes in its state. The device’s shadow(s) are uniquely identified by the name of the corresponding "thing", a representation of a specific device or logical entity on the AWS Cloud. See [Managing Devices with AWS IoT](https://docs.aws.amazon.com/iot/latest/developerguide/iot-thing-management.html) for more information on IoT "thing". This library supports named shadows, a feature of the AWS IoT Device Shadow service that allows you to create multiple shadows for a single IoT device. More details about AWS IoT Device Shadow can be found in [AWS IoT documentation](https://docs.aws.amazon.com/iot/latest/developerguide/iot-device-shadows.html).
-
-The AWS IoT Device Shadow library has no dependencies on additional libraries other than the standard C library. It also doesn’t have any platform dependencies, such as threading or synchronization. It can be used with any MQTT library and any JSON library (see [demos](demos/shadow) with coreMQTT and coreJSON).
-
-See memory requirements for the latest release [here](https://docs.aws.amazon.com/embedded-csdk/202103.00/lib-ref/libraries/aws/device-shadow-for-aws-iot-embedded-sdk/docs/doxygen/output/html/index.html#shadow_memory_requirements).
-
-
-#### AWS IoT Jobs
-
-The [AWS IoT Jobs](https://github.com/aws/jobs-for-aws-iot-embedded-sdk) library enables you to interact with the AWS IoT Jobs service which notifies one or more connected devices of a pending “Job”. A Job can be used to manage your fleet of devices, update firmware and security certificates on your devices, or perform administrative tasks such as restarting devices and performing diagnostics. For documentation of the service, please see the [AWS IoT Developer Guide](https://docs.aws.amazon.com/iot/latest/developerguide/iot-jobs.html). Interactions with the Jobs service use the MQTT protocol. This library provides an API to compose and recognize the MQTT topic strings used by the Jobs service.
-
-The AWS IoT Jobs library has no dependencies on additional libraries other than the standard C library. It also doesn’t have any platform dependencies, such as threading or synchronization. It can be used with any MQTT library and any JSON library (see [demos](demos/jobs) with [libmosquitto](https://mosquitto.org/) and coreJSON).
-
-See memory requirements for the latest release [here](https://docs.aws.amazon.com/embedded-csdk/202103.00/lib-ref/libraries/aws/jobs-for-aws-iot-embedded-sdk/docs/doxygen/output/html/index.html#jobs_memory_requirements).
-
-
-#### AWS IoT Device Defender
-
-
-The [AWS IoT Device Defender](https://github.com/aws/device-defender-for-aws-iot-embedded-sdk) library enables you to interact with the AWS IoT Device Defender service to continuously monitor security metrics from devices for deviations from what you have defined as appropriate behavior for each device. If something doesn’t look right, AWS IoT Device Defender sends out an alert so you can take action to remediate the issue. More details about Device Defender can be found in [AWS IoT Device Defender documentation](https://docs.aws.amazon.com/iot/latest/developerguide/device-defender.html). This library supports custom metrics, a feature that helps you monitor operational health metrics that are unique to your fleet or use case. For example, you can define a new metric to monitor the memory usage or CPU usage on your devices.
-
-The AWS IoT Device Defender library has no dependencies on additional libraries other than the standard C library. It also doesn’t have any platform dependencies, such as threading or synchronization. It can be used with any MQTT library and any JSON library (see [demos](demos/defender) with coreMQTT and coreJSON).
-
-See memory requirements for the latest release [here](https://docs.aws.amazon.com/embedded-csdk/202103.00/lib-ref/libraries/aws/device-defender-for-aws-iot-embedded-sdk/docs/doxygen/output/html/index.html#defender_memory_requirements).
-
-#### AWS IoT Over-the-air Update
-
-The [AWS IoT Over-the-air Update](https://github.com/aws/ota-for-aws-iot-embedded-sdk) (OTA) library enables you to manage the notification of a newly available update, download the update, and perform cryptographic verification of the firmware update. Using the OTA library, you can logically separate firmware updates from the application running on your devices. You can also use the library to send other files (e.g. images, certificates) to one or more devices registered with AWS IoT. More details about OTA library can be found in [AWS IoT Over-the-air Update documentation](https://docs.aws.amazon.com/freertos/latest/userguide/freertos-ota-dev.html).
-
-The AWS IoT Over-the-air Update library has a dependency on [coreJSON](https://github.com/FreeRTOS/coreJSON) for parsing of JSON job document and [tinyCBOR](https://github.com/intel/tinycbor.git) for decoding encoded data streams, other than the standard C library. It can be used with any MQTT library, HTTP library, and operating system (e.g. Linux, FreeRTOS) (see [demos](demos/ota) with coreMQTT and coreHTTP over Linux).
-
-See memory requirements for the latest release [here](https://docs.aws.amazon.com/embedded-csdk/202103.00/lib-ref/libraries/aws/ota-for-aws-iot-embedded-sdk/docs/doxygen/output/html/index.html#ota_memory_requirements).
-
-#### backoffAlgorithm
-
-The [backoffAlgorithm](https://github.com/FreeRTOS/backoffAlgorithm) library is a utility library to calculate backoff period using an exponential backoff with jitter algorithm for retrying network operations (like failed network connection with server). This library uses the "Full Jitter" strategy for the exponential backoff with jitter algorithm. More information about the algorithm can be seen in the [Exponential Backoff and Jitter AWS blog](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/).
-
-Exponential backoff with jitter is typically used when retrying a failed connection or network request to the server. An exponential backoff with jitter helps to mitigate the failed network operations with servers, that are caused due to network congestion or high load on the server, by spreading out retry requests across multiple devices attempting network operations. Besides, in an environment with poor connectivity, a client can get disconnected at any time. A backoff strategy helps the client to conserve battery by not repeatedly attempting reconnections when they are unlikely to succeed.
-
-The backoffAlgorithm library has no dependencies on libraries other than the standard C library.
-
-See memory requirements for the latest release [here](https://docs.aws.amazon.com/embedded-csdk/202103.00/lib-ref/libraries/standard/backoffAlgorithm/docs/doxygen/output/html/index.html#backoff_algorithm_memory_requirements).
-
-### Sending metrics to AWS IoT
-
-When establishing a connection with AWS IoT, users can optionally report the Operating System, Hardware Platform and MQTT client version information of their device to AWS. This information can help AWS IoT provide faster issue resolution and technical support. If users want to report this information, they can send a specially formatted string (see below) in the username field of the MQTT CONNECT packet.
-
-Format
-
-The format of the username string with metrics is:
-
-```
-<Actual_Username>?SDK=<OS_Name>&Version=<OS_Version>&Platform=<Hardware_Platform>&MQTTLib=<MQTT_Library_name>@<MQTT_Library_version>
-```
-
-Where
-
-* <Actual_Username> is the actual username used for authentication, if username and password are used for authentication. When username and password based authentication is not used, this
-is an empty value.
-* <OS_Name> is the Operating System the application is running on (e.g. Ubuntu)
-* <OS_Version> is the version number of the Operating System (e.g. 20.10)
-* <Hardware_Platform> is the Hardware Platform the application is running on (e.g. RaspberryPi)
-* <MQTT_Library_name> is the MQTT Client library being used (e.g. coreMQTT)
-* <MQTT_Library_version> is the version of the MQTT Client library being used (e.g. 1.1.0)
-
-Example
-
-*  Actual_Username = “iotuser”, OS_Name = Ubuntu, OS_Version = 20.10, Hardware_Platform_Name = RaspberryPi, MQTT_Library_Name = coremqtt, MQTT_Library_version = 1.1.0. If username is not used, then “iotuser” can be removed.
-
-```
-/* Username string:
- * iotuser?SDK=Ubuntu&Version=20.10&Platform=RaspberryPi&MQTTLib=coremqtt@1.1.0
- */
-
-#define OS_NAME                   "Ubuntu"
-#define OS_VERSION                "20.10"
-#define HARDWARE_PLATFORM_NAME    "RaspberryPi"
-#define MQTT_LIB                  "coremqtt@1.1.0"
-
-#define USERNAME_STRING           "iotuser?SDK=" OS_NAME "&Version=" OS_VERSION "&Platform=" HARDWARE_PLATFORM_NAME "&MQTTLib=" MQTT_LIB
-#define USERNAME_STRING_LENGTH    ( ( uint16_t ) ( sizeof( USERNAME_STRING ) - 1 ) )
-
-MQTTConnectInfo_t connectInfo;
-connectInfo.pUserName = USERNAME_STRING;
-connectInfo.userNameLength = USERNAME_STRING_LENGTH;
-mqttStatus = MQTT_Connect( pMqttContext, &connectInfo, NULL, CONNACK_RECV_TIMEOUT_MS, pSessionPresent );
-```
-
-## Versioning
-
-C-SDK releases will now follow a date based versioning scheme with the format YYYYMM.NN, where:
-
-* Y represents the year.
-* M represents the month.
-* N represents the release order within the designated month (00 being the first release).
-
-For example, a second release in June 2021 would be 202106.01. Although the SDK releases have moved to date-based versioning, each library within the SDK will still retain semantic versioning. In semantic versioning, the version number itself (X.Y.Z) indicates whether the release is a major, minor, or point release. You can use the semantic version of a library to assess the scope and impact of a new release on your application.
-
-## Releases
-
-All of the released versions of the C-SDK libraries are available as git tags. For example, the last release of the v3 SDK version is available at [tag 3.1.2](https://github.com/aws/aws-iot-device-sdk-embedded-C/tree/v3.1.2).
-
-### 202103.00
-
-[API documentation of 202103.00 release](https://docs.aws.amazon.com/embedded-csdk/202103.00/lib-ref/index.html)
-
-This release includes a [major update](https://github.com/aws/ota-for-aws-iot-embedded-sdk/blob/v3.0.0/CHANGELOG.md#v300-march-2021) to the APIs of the AWS IoT Over-the-air Update library.
-
-Additionally, AWS IoT Device Shadow library introduces a [minor update](https://github.com/aws/Device-Shadow-for-AWS-IoT-embedded-sdk/blob/v1.1.0/CHANGELOG.md#v110-march-2021) by adding support for named shadow, a feature of the AWS IoT Device Shadow service that allows you to create multiple shadows for a single IoT device. AWS IoT Jobs library introduces a [minor update](https://github.com/aws/Jobs-for-AWS-IoT-embedded-sdk/blob/v1.1.0/CHANGELOG.md#v110-march-2021) by introducing macros for `$next` job ID and compile-time generation of topic strings. AWS IoT Device Defender library introduces a [minor update](https://github.com/aws/Device-Defender-for-AWS-IoT-embedded-sdk/blob/v1.1.0/CHANGELOG.md#v110-march-2021) that adds macros to API for custom metrics feature of AWS IoT Device Defender service.
-
-corePKCS11 also introduces a [patch update](https://github.com/FreeRTOS/corePKCS11/blob/v3.0.1/CHANGELOG.md#v301-february-2021) by removing the `pkcs11configPAL_DESTROY_SUPPORTED` config and mbedTLS platform abstraction layer of `DestroyObject`. Lastly, no code changes are introduced for backoffAlgorithm, coreHTTP, coreMQTT, and coreJSON; however, patch updates are made to improve documentation and CI.
-
-### 202012.01
-
-[API documentation of 202012.01 release](https://docs.aws.amazon.com/embedded-csdk/202012.00/lib-ref/index.html)
-
-This release includes [AWS IoT Over-the-air Update(Release Candidate)](https://github.com/aws/ota-for-aws-iot-embedded-sdk), [backoffAlgorithm](https://github.com/FreeRTOS/backoffAlgorithm), and [PKCS #11](https://github.com/FreeRTOS/corePKCS11) libraries. Additionally, there is a major update to the coreJSON and coreHTTP APIs. All libraries continue to undergo code quality checks (e.g. MISRA-C compliance), and Coverity static analysis. In addition, all libraries except AWS IoT Over-the-air Update and backoffAlgorithm undergo validation of memory safety with the C Bounded Model Checker (CBMC) automated reasoning tool.
-
-### 202011.00
-
-[API documentation of 202011.00 release](https://docs.aws.amazon.com/embedded-csdk/202011.00/lib-ref/index.html)
-
-This release includes refactored HTTP client, AWS IoT Device Defender, and AWS IoT Jobs libraries. Additionally, there is a major update to the coreJSON API. All libraries continue to undergo code quality checks (e.g. MISRA-C compliance), Coverity static analysis, and validation of memory safety with the C Bounded Model Checker (CBMC) automated reasoning tool.
-
-### 202009.00
-
-[API documentation of 202009.00 release](https://docs.aws.amazon.com/freertos/latest/lib-ref/embedded-csdk/202009.00/lib-ref/index.html)
-
-This release includes refactored MQTT, JSON Parser, and AWS IoT Device Shadow libraries for optimized memory usage and modularity. These libraries are included in the SDK via [Git submoduling](https://git-scm.com/book/en/v2/Git-Tools-Submodules). These libraries have gone through code quality checks including verification that no function has a [GNU Complexity](https://www.gnu.org/software/complexity/manual/complexity.html) score over 8, and checks against deviations from mandatory rules in the [MISRA coding standard](https://www.misra.org.uk/MISRAHome/MISRAC2012/tabid/196/Default.aspx). Deviations from the MISRA C:2012 guidelines are documented under [MISRA Deviations](MISRA.md). These libraries have also undergone both static code analysis from [Coverity static analysis](https://scan.coverity.com/), and validation of memory safety and data structure invariance through the [CBMC automated reasoning tool](https://www.cprover.org/cbmc/).
-
-If you are upgrading from v3.x API of the C-SDK to the 202009.00 release, please refer to [Migration guide from v3.1.2 to 202009.00 and newer releases](#migration-guide-from-v312-to-20200900-and-newer-releases). If you are using the C-SDK v4_beta_deprecated branch, note that we will continue to maintain this branch for critical bug fixes and security patches but will not add new features to it. See the C-SDK v4_beta_deprecated branch [README](https://github.com/aws/aws-iot-device-sdk-embedded-C/blob/v4_beta_deprecated/README.md) for additional details.
-
-### v3.1.2
-
-Details available [here](https://github.com/aws/aws-iot-device-sdk-embedded-C/tree/v3.1.2).
-
-## Porting Guide for 202009.00 and newer releases
-
-All libraries depend on the ISO C90 standard library and additionally on the `stdint.h` library for fixed-width integers, including `uint8_t`, `int8_t`, `uint16_t`, `uint32_t` and `int32_t`, and constant macros like `UINT16_MAX`. If your platform does not support the `stdint.h` library, definitions of the mentioned fixed-width integer types will be required for porting any C-SDK library to your platform.
-
-### Porting coreMQTT
-
-Guide for porting coreMQTT library to your platform is available [here](https://docs.aws.amazon.com/embedded-csdk/202103.00/lib-ref/libraries/standard/coreMQTT/docs/doxygen/output/html/mqtt_porting.html).
-
-### Porting coreHTTP
-
-Guide for porting coreHTTP library is available [here](https://docs.aws.amazon.com/embedded-csdk/202103.00/lib-ref/libraries/standard/coreHTTP/docs/doxygen/output/html/http_porting.html).
-
-### Porting AWS IoT Device Shadow
-
-Guide for porting AWS IoT Device Shadow library is available [here](https://docs.aws.amazon.com/embedded-csdk/202103.00/lib-ref/libraries/aws/device-shadow-for-aws-iot-embedded-sdk/docs/doxygen/output/html/shadow_porting.html).
-
-### Porting AWS IoT Device Defender
-
-Guide for porting AWS IoT Device Defender library is available [here](https://docs.aws.amazon.com/embedded-csdk/202103.00/lib-ref/libraries/aws/device-defender-for-aws-iot-embedded-sdk/docs/doxygen/output/html/defender_porting.html).
-
-### Porting AWS IoT Over-the-air Update
-
-Guide for porting OTA library to your platform is available [here](https://docs.aws.amazon.com/embedded-csdk/202103.00/lib-ref/libraries/aws/ota-for-aws-iot-embedded-sdk/docs/doxygen/output/html/ota_porting.html).
-
-## Migration guide from v3.1.2 to 202009.00 and newer releases
-
-### MQTT Migration
-
-Migration guide for MQTT library is available [here](https://docs.aws.amazon.com/embedded-csdk/202103.00/lib-ref/docs/doxygen/output/html/mqtt_migration.html).
-
-### Shadow Migration
-
-Migration guide for Shadow library is available [here](https://docs.aws.amazon.com/embedded-csdk/202103.00/lib-ref/docs/doxygen/output/html/shadow_migration.html).
-
-### Jobs Migration
-
-Migration guide for Jobs library is available [here](https://docs.aws.amazon.com/embedded-csdk/202103.00/lib-ref/docs/doxygen/output/html/jobs_migration.html).
 
 ## Branches
 
 ### main branch
 
 The [main](https://github.com/aws/aws-iot-device-sdk-embedded-C/tree/main) branch hosts the continuous development of the AWS IoT Embedded C SDK (C-SDK) libraries. Please be aware that the development at the tip of the main branch is continuously in progress, and may have bugs. Consider using the [tagged releases](https://github.com/aws/aws-iot-device-sdk-embedded-C/releases) of the C-SDK for production ready software.
+
+### sub_master branch
+
+[sub_master](https://github.com/socar-rane/aws-iot-device-sdk-embedded-C/tree/sub_master) 브랜치는 Fleet Provisioning 코드가 포함된 버전의 라이브러리입니다. 본 코드는 Python Fleet Provisioning 코드를 리빌드하였습니다. 사용법은 '라네와 함께하는 AWS 프로비저닝 코드 만들기'를 참조해주세요.
 
 ### v4_beta_deprecated branch (formerly named v4_beta)
 
@@ -297,6 +103,43 @@ The [v4_beta_deprecated](https://github.com/aws/aws-iot-device-sdk-embedded-C/tr
 
 ### Cloning
 
+#### 리눅스 환경 구축방법
+
+* 이 스크립트는 Git Repository에 포함되어 있습니다. install.sh 스크립트를 복사하여 아무 디렉토리에 붙여넣기 하고, 스크립트를 실행하면 됩니다.
+
+```sh
+#!/bin/sh
+# 패키지 업데이트
+sudo apt-get update
+
+# 필수 패키지 설치
+sudo apt-get install -y vim libssl-dev build-essential cmake uuid-dev git python3-pip 
+
+# Workspace 디렉토리 생성
+mkdir Workspace
+
+# Workspace 디렉토리 생성 후 소스코드 다운로드
+cd Workspace
+
+# git clone 명령어 실행 시 꼭 branch를 sub_master로 설정해주시고, --recurse-submodules 옵션을 사용하세요.
+git clone -b sub_master https://github.com/socar-rane/aws-iot-device-sdk-embedded-C.git --recurse-submodules
+
+# 소스코드 디렉토리 진입 후 cmake 빌드 디렉토리 생성
+cd aws-iot-device-sdk-embedded-C
+mkdir build
+cd build
+
+# cmake 실행
+cmake ..
+
+# make 실행
+make
+
+# Fleet Provisioning 예제 빌드
+make mqtt_demo_mutual_auth
+```
+
+위 스크립트를 실행하면 Gti Repository를 다운로드 & 빌드까지 완료하므로 
 This repository uses [Git Submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules) to bring in the C-SDK libraries (eg, MQTT ) and third-party dependencies (eg, mbedtls for POSIX platform transport layer).
 Note: If you download the ZIP file provided by GitHub UI, you will not get the contents of the submodules (The ZIP file is also not a valid git repository). If you download from the [202012.00 Release Page](https://github.com/aws/aws-iot-device-sdk-embedded-C/releases/tag/202012.00) page, you will get the entire repository (including the submodules) in the ZIP file, aws-iot-device-sdk-embedded-c-202012.00.zip.
 To clone the latest commit to main branch using HTTPS:
