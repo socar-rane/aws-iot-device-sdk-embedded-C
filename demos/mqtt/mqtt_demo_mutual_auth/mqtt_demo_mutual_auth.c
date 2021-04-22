@@ -2078,14 +2078,14 @@ void help()
 {
     printf("Usage : ./mqtt_demo_mutual_auth [options] [message]\n");
     printf("options:\n");
-    printf("-c, --cert\t\t\tCertificate ID를 설정합니다. (ex : f29963b501\n");
-    printf("-C, --client\t\t\tClient Identifier를 설정합니다.\n");
+    printf("-c, --cert <Certificate ID>\t\t\tCertificate ID를 설정합니다. (ex : abc123456)\n");
+    printf("-C, --client <Client ID>\t\t\tClient Identifier를 설정합니다.\n");
     printf("-f, --fleet\t\t\tFleet Provisioning을 수행합니다.\n");
     printf("-h : 이 메시지를 출력합니다.\n");
-    printf("-m, --message\t\t\tPublish Payload를 입력합니다.\n");
-    printf("-p, --publish\t\t\tPublish 메시지를 전송합니다. -t 옵션을 사용하여 Topic을 입력해야합니다. (1 : 한 번 전송, 2 : 반복하여 전송)\n");
+    printf("-m, --message <JSON Payload>\t\t\tPublish Payload를 입력합니다.\n");
+    printf("-p, --publish <1 : once / 2 : Loop>\t\t\tPublish 메시지를 전송합니다. -t 옵션을 사용하여 Topic을 입력해야합니다. (1 : 한 번 전송, 2 : 반복하여 전송)\n");
     printf("-s, --subscribe\t\t\tSubscribe 메시지를 전송합니다. -t 옵션을 사용하여 Topic을 입력해야합니다.\n");
-    printf("-t, --topic\t\t\tPublish / Subscribe할 Topic을 설정합니다.(ex : client/test/topic)\n");
+    printf("-t, --topic <Topic Name>\t\t\tPublish / Subscribe할 Topic을 설정합니다.(ex : client/test/topic)\n");
     
 }
 
