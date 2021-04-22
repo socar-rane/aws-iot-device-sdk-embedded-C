@@ -804,7 +804,6 @@ static int connectToServerWithBackoffRetries( NetworkContext_t * pNetworkContext
                 memset(defCertfileId, 0, sizeof(defCertfileId));
                 strcpy(defCertfileId, EX_CERTID);
             }
-            printf("[RANE DEBUG] Set Certificate ID : %s", defCertfileId);
             sprintf(certfilePath, "%s/%s-certificate.pem.crt", CERTFILE_PATH, EX_CERTID);
             sprintf(privatefilePath, "%s/%s-private.pem.key", CERTFILE_PATH, EX_CERTID);
         break;
