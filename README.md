@@ -131,14 +131,14 @@ mqtt_demo_mutual_auth를 실행하면 사용방법에 대해 출력됩니다.
 ```
 Usage : ./mqtt_demo_mutual_auth [options] [message]
 options:
--c, --cert                      Certificate ID를 설정합니다. (ex : abcd123456)
--C, --client                    Client Identifier를 설정합니다.
+-c, --cert <Certificate ID>                     Certificate ID를 설정합니다. (ex : abcd123456)
+-C, --client <Client ID>                   Client Identifier를 설정합니다.
 -f, --fleet                     Fleet Provisioning을 수행합니다.
 -h : 이 메시지를 출력합니다.
--m, --message                   Publish Payload를 입력합니다.
--p, --publish                   Publish 메시지를 전송합니다. -t 옵션을 사용하여 Topic을 입력해야합니다. (1 : 한 번 전송, 2 : 반복하여 전송)
+-m, --message <JSON Payload>                  Publish Payload를 입력합니다.
+-p, --publish <1: once / 2 : Loop>                  Publish 메시지를 전송합니다. -t 옵션을 사용하여 Topic을 입력해야합니다. (1 : 한 번 전송, 2 : 반복하여 전송)
 -s, --subscribe                 Subscribe 메시지를 전송합니다. -t 옵션을 사용하여 Topic을 입력해야합니다.
--t, --topic                     Publish / Subscribe할 Topic을 설정합니다.(ex : client/test/topic)
+-t, --topic <Topic Name>                    Publish / Subscribe할 Topic을 설정합니다.(ex : client/test/topic)
 ```
 
 -c (cert) : 인증서의 Certificate ID 앞 10자리를 입력합니다.
