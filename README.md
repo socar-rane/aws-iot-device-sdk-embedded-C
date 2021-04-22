@@ -123,3 +123,35 @@ shadow_demo_main
 ```
 * 빌드 가능한 패키지를 확인하였으면 `demo_name`을 패키지 이름으로 변경하여 `make demo_name`을 실행합니다.
 * 빌드가 완료되면 `build/bin` 디렉토리에 실행파일이 생성됩니다.
+
+#### mqtt_demo_mutual_auth 실행방법
+
+mqtt_demo_mutual_auth를 실행하면 사용방법에 대해 출력됩니다.
+
+```
+Usage : ./mqtt_demo_mutual_auth [options] [message]
+options:
+-c, --cert                      Certificate ID를 설정합니다. (ex : abcd123456)
+-C, --client                    Client Identifier를 설정합니다.
+-f, --fleet                     Fleet Provisioning을 수행합니다.
+-h : 이 메시지를 출력합니다.
+-m, --message                   Publish Payload를 입력합니다.
+-p, --publish                   Publish 메시지를 전송합니다. -t 옵션을 사용하여 Topic을 입력해야합니다. (1 : 한 번 전송, 2 : 반복하여 전송)
+-s, --subscribe                 Subscribe 메시지를 전송합니다. -t 옵션을 사용하여 Topic을 입력해야합니다.
+-t, --topic                     Publish / Subscribe할 Topic을 설정합니다.(ex : client/test/topic)
+```
+
+-c (cert) : 인증서의 Certificate ID 앞 10자리를 입력합니다.
+인증서의 파일명이 `abcd123456-private.pem.key`일 경우 `abcd123456`을 입력해줍니다.
+
+-C (Client ID) : 클라이언트의 Identifier를 입력해줍니다. 최대 64 Byte로 제한됩니다.
+
+-f : Fleet Provisioning을 실행합니다.
+
+-m : Publish 사용 시 Publish Payload 메시지를 입력합니다.
+
+-p : 지정한 Topic으로 Publish를 전송합니다. Topic은 -t 옵션을 사용하여 설정하며 Payload 메시지는 -m 옵션을 사용하여 설정합니다.
+
+-s : 지정한 Topic으로 Subscribe를 전송합니다.
+
+-t : Publish 또는 Subscribe할 Topic을 설정합니다. 
