@@ -1133,7 +1133,8 @@ void on_message( struct mosquitto * m,
                 //mosquitto_destroy(h->m);
 
                 changeConnectionInformation(h);
-
+                h->connectError = 0;
+                info("reconnect port : %d\n", h->port);
                 if( (setup(h) == false) || (connect(h) == false))
                 {
                     errx( 1, "fatal error" );
