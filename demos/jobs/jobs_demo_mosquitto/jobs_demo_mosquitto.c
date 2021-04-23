@@ -796,7 +796,6 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 		if(jsonResult == JSONSuccess)
 		{
 			char save = value[valueLength];
-			value[valueLength] = '\0';
 			strncpy(tempId, value, sizeof(char) * 10);
             info("value certificateId : %s\n", value);
             info("temp certificateId : %s\n", tempId);
@@ -813,7 +812,6 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 			if(jsonResult == JSONSuccess)
 			{
 				FILE *fp;
-				certificateId[strlen(certificateId)] = '\0';
                 info("cert certificateId : %s\n", certificateId);
 				sprintf(certFileName, "%s/%s-certificate.pem.crt", CERTFILE_PATH, certificateId);
 				fp = fopen(certFileName, "w");
@@ -834,7 +832,6 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 			if(jsonResult == JSONSuccess)
 			{
 				FILE *fp;
-				tempId[strlen(tempId)] = '\0';
                 info("tempid certificateId : %s\n", tempId);
 				sprintf(privateFileName, "%s/%s-private.pem.key", CERTFILE_PATH, tempId);
                 strcpy(gCertificateId, tempId);
