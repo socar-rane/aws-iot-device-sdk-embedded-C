@@ -834,7 +834,7 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 			{
 				convertResult = registerThing(value, valueLength);
 				
-                if(convertResult != EXIT_SUCCESS)
+                if(convertResult == false)
                 {
                     errx(1, "Registration new service failed\n");
                     return false;
