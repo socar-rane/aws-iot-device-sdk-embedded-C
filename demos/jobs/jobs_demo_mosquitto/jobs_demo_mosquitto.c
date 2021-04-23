@@ -275,6 +275,10 @@ static void on_subscribe( struct mosquitto * m,
                           int qos_count,
                           const int * granted_qos );
 
+void on_publish( struct mosquitto *m,
+                 void *p,
+                 const struct mosquitto_message *message);
+
 /**
  * @brief Subscribe to a Jobs topic.
  *
@@ -285,6 +289,7 @@ static void on_subscribe( struct mosquitto * m,
  * false otherwise
  */
 static bool subscribe( handle_t * h, char *in_topic);
+static bool publish( handle_t *h, char *in_topic, char *in_message);
 /**
  * @brief The libmosquitto callback for a received publish message.
  *
@@ -742,6 +747,34 @@ static bool subscribe( handle_t * h, char *in_topic)
 
 /*-----------------------------------------------------------*/
 
+static bool publish( handle_t *h, char *in_topic, char *in_message)
+{
+    int ret;
+    size_t i;
+
+    assert( h != NULL);
+    assert( MQTT_QOS <= 2 );
+
+    h->subscribeQOS = -1;
+
+    ret = mosquitto_publish(h->m, NULL, in_topic, strlen(in_message), in_message, MQTT_QOS, 0);
+    
+    for(i = 0 ; (i < MAX_LOOPS) && (ret == MOSQ_ERR_SUCCESS) ; i++)
+    {
+        ret = mosquitto_loop( h->m, MQTT_SHORT_WAIT_TIME, 1 );
+    }
+
+    if( ret != MOSQ_ERR_SUCCESS )
+    {
+        warnx( "subscribe: %s", mosquitto_strerror( ret ) );
+        return false;
+    }
+
+    return true;
+}
+
+/*-----------------------------------------------------------*/
+
 void on_message( struct mosquitto * m,
                  void * p,
                  const struct mosquitto_message * message )
@@ -751,8 +784,22 @@ void on_message( struct mosquitto * m,
     assert( h != NULL );
     assert( message->topic != NULL );
 
-    info("on topic : %s / on message : %s\n", message->topic, message->payload);
+    info("on_message topic : %s / on message : %s\n", message->topic, message->payload);
 }
+
+/*-----------------------------------------------------------*/
+
+void on_publish( struct mosquitto *m,
+                 void *p,
+                 const struct mosquitto_message *message)
+{
+    handle_t * h = p;
+    assert(h != NULL);
+    assert( message->topic != NULL );
+
+    info("on_publish topic : %s / on message : %s\n", message->topic, message->payload);
+}
+
 /*-----------------------------------------------------------*/
 
 static void on_log( struct mosquitto * m,
@@ -797,6 +844,7 @@ static bool setup( handle_t * h )
         mosquitto_connect_callback_set( h->m, on_connect );
         mosquitto_subscribe_callback_set( h->m, on_subscribe );
         mosquitto_message_callback_set( h->m, on_message );
+        mosquitto_publish_callback_set( h->m, on_publish );
         ret = true;
     }
 
@@ -870,6 +918,8 @@ int main( int argc,
     {
         errx( 1, "fatal error" );
     }
+
+
 
     h->lastPrompt = time( NULL );
 
