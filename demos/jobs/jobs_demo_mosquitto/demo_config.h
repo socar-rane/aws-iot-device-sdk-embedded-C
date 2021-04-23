@@ -73,4 +73,21 @@
 #define CURL( url ) \
     execl( "/usr/bin/curl", "curl", "-OLsSN", "--limit-rate", "10k", url, NULL )
 
+#define PRE_TEMPLATE_PATH "$aws/provisioning-templates/" PRODUCTION_TEMPLATE
+#define TEMPLATE_ACCEPT_TOPIC PRE_TEMPLATE_PATH "/provision/json/accepted"
+#define TEMPLATE_REJECT_TOPIC PRE_TEMPLATE_PATH "/provision/json/rejected"
+#define CERTIFICATE_ACCEPT_TOPIC "$aws/certificates/create/json/accepted"
+#define CERTIFICATE_REJECT_TOPIC "$aws/certificates/create/json/rejected"
+#define PRODUCTION_TEMPLATE "INSERT YOUR PROVISIONING TEMPLATE NAME"
+
+#define PROVISIONING_CERT_CREATE_TOPIC "$aws/certificates/create/json"
+#define PROVISIONING_TEMPLATE_TOPIC PRE_TEMPLATE_PATH "/provision/json"
+
+#define TEMPLATE_ACC_LENGTH ((uint16_t) (sizeof(TEMPLATE_ACCEPT_TOPIC) - 1))
+#define TEMPLATE_RJT_LENGTH ((uint16_t) (sizeof(TEMPLATE_REJECT_TOPIC) - 1))
+#define CERTIFICATE_ACC_LENGTH ((uint16_t) (sizeof(CERTIFICATE_ACCEPT_TOPIC) - 1))
+#define CERTIFICATE_RJT_LENGTH ((uint16_t) (sizeof(CERTIFICATE_REJECT_TOPIC) - 1))
+#define PROVISIONING_CC_LENGTH ((uint16_t) (sizeof(PROVISIONING_CERT_CREATE_TOPIC) - 1))
+#define PROVISIONING_TT_LENGTH ((uint16_t) (sizeof(PROVISIONING_TEMPLATE_TOPIC) - 1))
+
 #endif /* ifndef DEMO_CONFIG_H */
