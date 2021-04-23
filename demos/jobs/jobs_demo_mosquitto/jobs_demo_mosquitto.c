@@ -774,7 +774,7 @@ static int JSONtoCertFile(char *inStr, int inStrLength, FILE *fp)
 
 static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 {
-	char tempId[16], certificateId[16] = {0,};
+	char tempId[16] = {0,}, certificateId[16] = {0,};
 	char certFileName[36] = {0,}, privateFileName[36] = {0,};
 	char payloadBuffer[NETWORK_BUFFER_SIZE];
 	
@@ -784,7 +784,7 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 	size_t queryLength = strlen(queryCertificate[0]);
 	char *value;
 
-	strncpy(payloadBuffer, pBuffer, sizeof(char)*pBufferLength);
+	strncpy(payloadBuffer, pBuffer, pBufferLength);
 
 	jsonResult = JSON_Validate(pBuffer, pBufferLength);
 
@@ -795,12 +795,12 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
         info("value certificateId : %s\n", value);
 		if(jsonResult == JSONSuccess)
 		{
-			strncpy(tempId, value, sizeof(char) * 10);
+			memcpy(tempId, value, 10);
             
             info("temp certificateId : %s\n", tempId);
             info("gcert certificateId : %s\n", gCertificateId);
-			strcpy(certificateId, tempId);
-			strcpy(gCertificateId, certificateId);
+			memcpy(certificateId, tempId);
+			memcpy(gCertificateId, certificateId);
 			memset(payloadBuffer, 0, sizeof(char) * pBufferLength);
 			strncpy(payloadBuffer, pBuffer, sizeof(char)*pBufferLength);
 
