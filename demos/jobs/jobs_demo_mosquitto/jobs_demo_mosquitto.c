@@ -277,7 +277,7 @@ static void on_subscribe( struct mosquitto * m,
 
 void on_publish( struct mosquitto *m,
                  void *p,
-                 const struct mosquitto_message *message);
+                 int mid);
 
 /**
  * @brief Subscribe to a Jobs topic.
