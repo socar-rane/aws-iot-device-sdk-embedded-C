@@ -1207,7 +1207,7 @@ static bool subscribeFleetProvisioning(handle_t *h)
     for(i = 0 ; i < 4 ; i++)
     {
         ret = subscribe(h, TopicFilter[i]);
-        if(ret != MOSQ_ERR_SUCCESS)
+        if(ret != false)
             errx(1, "subscribe topic error\n");
     }
     
