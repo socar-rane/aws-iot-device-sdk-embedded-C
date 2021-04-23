@@ -1130,7 +1130,7 @@ void on_message( struct mosquitto * m,
                 set_in_progress = SET_IN_PROGRESS;
 
                 closeConnection(h);
-                mosquitto_destroy(h->m);
+                //mosquitto_destroy(h->m);
 
                 changeConnectionInformation(h);
 
