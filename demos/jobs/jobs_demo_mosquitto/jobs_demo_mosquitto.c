@@ -77,7 +77,7 @@
  * @brief ALPN (Application-Layer Protocol Negotiation) name for AWS IoT MQTT.
  */
 #define ALPN_NAME               "x-amzn-mqtt-ca"
-
+#define UUID_FILE_PATH "/proc/sys/kernel/random/uuid"
 #define NETWORK_BUFFER_SIZE    (4096)
 
 /*-----------------------------------------------------------*/
@@ -767,8 +767,6 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 	size_t queryLength = strlen(queryCertificate[0]);
 	char *value;
 
-	info("Input JSON String : %s / Length : %d\n", pBuffer, pBufferLength);
-
 	strncpy(payloadBuffer, pBuffer, sizeof(char)*pBufferLength);
 
 	jsonResult = JSON_Validate(pBuffer, pBufferLength);
@@ -1074,7 +1072,7 @@ void on_message( struct mosquitto * m,
 
     int index = findTopicIndex(message->topic);
 
-    info("on_message topic : %s / on message : %s\n", message->topic, message->payload);
+    info("on_message topic : %s / on message : %s / index : %d\n", message->topic, message->payload, index);
 
     switch(index)
     {
@@ -1106,7 +1104,7 @@ void on_message( struct mosquitto * m,
                     jsonResult = JSON_Search(message->payload, message->payloadlen,
                     tQuery, queryLength, &value, &valueLength);
 
-                    printf("[LOG] Client Id : %s\n", value);
+                    info("[LOG] Client Id : %s\n", value);
 
                     strcpy(gClientId, value);
                 }
@@ -1246,7 +1244,20 @@ static bool changeConnectionInformation(handle_t *h)
 
 /*-----------------------------------------------------------*/
 
+static void createUUIDStr()
+{
+    FILE *fp = fopen(UUID_FILE_PATH, "r");
+    char buffer[40] = {0, };
+    int count = 0;
 
+    while(feof(fp) == 0)
+    {
+        count = fread(buffer, sizeof(buffer), 1, fp);
+        buffer[strlen(buffer)-1] = '\0';
+        strcpy(uuidStr, buffer);
+    }
+    fclose(fp);
+}
 int main( int argc,
           char * argv[] )
 {
