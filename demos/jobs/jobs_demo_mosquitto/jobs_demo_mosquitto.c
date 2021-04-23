@@ -439,6 +439,14 @@ enum
     USER_PUBSUB
 };
 
+enum
+{
+    SET_COMPLETE,           // Set Complete Flag
+    SET_IN_PROGRESS,        // Set In Progress Flag
+    SET_FAILED,             // Set Failed Flag
+    RESERVED                // Reserved
+};
+
 /**
  * @brief Initialize Topic name
  */
@@ -491,6 +499,9 @@ char uuidStr[64] = {0,};
 
 /// @brief New Session Client Identifier 
 char gClientId[128] = {0,};
+
+/// @brief Set in progress Flag
+int set_in_progress = 0;
 
 /**
  * @brief Publish Payload Message Length Array
@@ -1115,10 +1126,19 @@ void on_message( struct mosquitto * m,
                     strcpy(gClientId, value);
                 }
 
+                set_in_progress = SET_IN_PROGRESS;
+
                 closeConnection(h);
                 mosquitto_destroy(h->m);
 
+                changeConnectionInformation(h);
 
+                if( (setup(h) == false) || (connect(h) == false))
+                {
+                    errx( 1, "fatal error" );
+                    set_in_progress = SET_COMPLETE;
+                    completeFlag[1] = true;
+                }
             }
         }
         break;
@@ -1245,7 +1265,16 @@ static bool unsubscribeFleetProvisioning(handle_t *h)
 
 static bool changeConnectionInformation(handle_t *h)
 {
+    char privateKeyFile[50] = {0,}, certFile[50] = {0,};
 
+    h->name = gClientId;
+    h->nameLength = strlen(gClientId);
+
+    sprintf(certFile, "%s/%s-certificate.pem.crt", CERTFILE_PATH, gCertificateId);
+    sprintf(privateKeyFile, "%s/%s-private.pem.key", CERTFILE_PATH, gCertificateId);
+
+    h->certfile = certFile;
+    h->keyfile = privateKeyFile;
 }
 
 /*-----------------------------------------------------------*/
@@ -1264,8 +1293,8 @@ static void createUUIDStr()
     }
     fclose(fp);
 }
-int main( int argc,
-          char * argv[] )
+
+int main( int argc, char * argv[] )
 {
     handle_t h_, * h = &h_;
     time_t now;
@@ -1303,15 +1332,23 @@ int main( int argc,
         {
             publish(h, TopicFilter[PROVISIONING_TT], MqttExMessage[1]);
         }
-
-        m_ret = mosquitto_loop( h->m, MQTT_WAIT_TIME, 1 );
-
-        if( m_ret != MOSQ_ERR_SUCCESS )
+        else if(completeFlag[1] == true)
         {
-            errx( 1, "mosquitto_loop: %s", mosquitto_strerror( m_ret ) );
+            subscribe(h, TopicFilter[OPENWORLD]);
         }
 
-        now = time( NULL );
+        if(set_in_progress == SET_COMPLETE)
+        {
+            m_ret = mosquitto_loop( h->m, MQTT_WAIT_TIME, 1 );
+
+            if( m_ret != MOSQ_ERR_SUCCESS )
+            {
+                errx( 1, "mosquitto_loop: %s", mosquitto_strerror( m_ret ) );
+            }
+
+            now = time( NULL );
+        }
+        sleep(1);
     }
 
     exit( EXIT_SUCCESS );
