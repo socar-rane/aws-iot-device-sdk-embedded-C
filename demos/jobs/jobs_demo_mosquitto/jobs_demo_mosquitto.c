@@ -338,6 +338,13 @@ static void teardown( int x,
                       void * p );
 
 /**
+ * @brief Subscribe Fleet Provisioning all topics
+ * 
+ * @param[in] h runtime state handle
+ */
+
+static bool subscribeFleetProvisioning(handle_t *h);
+/**
  * @brief Log an informational message.
  */
 #define info    warnx
@@ -348,7 +355,20 @@ static void teardown( int x,
  * @param[in] x one of "IN_PROGRESS", "SUCCEEDED", or "FAILED"
  */
 #define makeReport_( x )    "{\"status\":\"" x "\"}"
-#define TOPIC_LENGTH		9
+#define TOPIC_LENGTH		8
+
+// Topic Identifier
+enum
+{
+	TEMPLATE_REJECT,        // Provisioning Template Reject Topic
+	CERTIFICATE_REJECT,     // Create Certificate Reject Topic
+	TEMPLATE_ACCEPT,        // Provisioning Template Accept Topic
+	CERTIFICATE_ACCEPT,     // Create Certificate Accept Topic
+	OPENWORLD,              // Create New Session Example Topic
+	PROVISIONING_CC,        // Provisioning Create Certificate Topic
+	PROVISIONING_TT,         // Provisioning Template Topic
+    USER_PUBSUB
+};
 
 /**
  * @brief Initialize Topic name
@@ -810,6 +830,22 @@ static void teardown( int x,
 
 /*-----------------------------------------------------------*/
 
+static bool subscribeFleetProvisioning(handle_t *h)
+{
+    bool ret;
+    int i = 0;
+    for(i = 0 ; i < 4 ; i++)
+    {
+        ret = subscribe(h, TopicFilter[i]);
+        if(!ret)
+            return ret;
+    }
+    
+    return ret;
+}
+
+/*-----------------------------------------------------------*/
+
 
 int main( int argc,
           char * argv[] )
@@ -831,7 +867,7 @@ int main( int argc,
         errx( 1, "fatal error" );
     }
 
-    if( subscribe(h, TopicFilter[0]) == false )
+    if( subscribeFleetProvisioning(h) == false )
     {
         errx( 1, "fatal error" );
     }
