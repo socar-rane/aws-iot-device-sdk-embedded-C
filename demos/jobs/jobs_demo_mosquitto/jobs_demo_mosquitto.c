@@ -1211,7 +1211,7 @@ static bool subscribeFleetProvisioning(handle_t *h)
             errx(1, "subscribe topic error\n");
     }
     
-    if(ret != MOSQ_ERR_SUCCESS)
+    if(ret != true)
         return false;
     else
         return true;    
@@ -1227,11 +1227,11 @@ static bool unsubscribeFleetProvisioning(handle_t *h)
     for(i = 0 ; i < 4 ; i++)
     {
         ret = unsubscribe(h, TopicFilter[i]);
-        if(ret != MOSQ_ERR_SUCCESS)
+        if(ret != true)
             errx(1, "unsubscribe topic error\n");
     }
 
-    if(ret != MOSQ_ERR_SUCCESS)
+    if(ret != true)
         return false;
     else
         return true;
