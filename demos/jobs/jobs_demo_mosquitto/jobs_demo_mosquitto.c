@@ -275,9 +275,6 @@ static void on_subscribe( struct mosquitto * m,
                           int qos_count,
                           const int * granted_qos );
 
-void on_publish( struct mosquitto *m,
-                 void *p,
-                 int mid);
 
 /**
  * @brief Subscribe to a Jobs topic.
@@ -789,18 +786,6 @@ void on_message( struct mosquitto * m,
 
 /*-----------------------------------------------------------*/
 
-void on_publish( struct mosquitto *m,
-                 void *p,
-                 int mid)
-{
-    handle_t * h = p;
-    assert(h != NULL);
-    
-    info("on_publish topic : %s / on message : %s\n", h->m->will->topic, h->m->will->payload);
-}
-
-/*-----------------------------------------------------------*/
-
 static void on_log( struct mosquitto * m,
                     void * p,
                     int level,
@@ -843,7 +828,6 @@ static bool setup( handle_t * h )
         mosquitto_connect_callback_set( h->m, on_connect );
         mosquitto_subscribe_callback_set( h->m, on_subscribe );
         mosquitto_message_callback_set( h->m, on_message );
-        mosquitto_publish_callback_set( h->m, on_publish );
         ret = true;
     }
 
