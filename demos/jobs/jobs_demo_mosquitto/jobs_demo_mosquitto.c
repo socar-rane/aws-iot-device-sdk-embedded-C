@@ -1134,11 +1134,8 @@ void on_message( struct mosquitto * m,
                 
                 closeConnection(h);
                 //mosquitto_destroy(h->m);
-
                 changeConnectionInformation(h);
-
                 mosquitto_destroy( h->m );
-                mosquitto_lib_cleanup();
 
                 completeFlag[1] = true;
                 
