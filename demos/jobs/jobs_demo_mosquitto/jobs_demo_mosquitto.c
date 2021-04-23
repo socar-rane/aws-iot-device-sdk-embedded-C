@@ -360,6 +360,14 @@ static void teardown( int x,
 static bool subscribeFleetProvisioning(handle_t *h);
 
 /**
+ * @brief Unubscribe Fleet Provisioning all topics
+ * 
+ * @param[in] h runtime state handle
+ */
+
+static bool unsubscribeFleetProvisioning(handle_t *h);
+
+/**
  * @brief Find topic index function
  */ 
 int findTopicIndex(char *in_topic);
@@ -477,7 +485,7 @@ char queryCertificate[4][64] =
 char uuidStr[64] = {0,};
 
 /// @brief New Session Client Identifier 
-char deviceUUID[128] = {0,};
+char gClientId[128] = {0,};
 
 /**
  * @brief Publish Payload Message Length Array
@@ -691,12 +699,7 @@ static bool parseArgs( handle_t * h,
 
     return ret;
 }
-/*-----------------------------------------------------------*/
 
-static bool unsubscribeFleetTopic()
-{
-
-}
 
 /*-----------------------------------------------------------*/
 
@@ -1085,7 +1088,35 @@ void on_message( struct mosquitto * m,
         break;
         
         case TEMPLATE_ACCEPT:
-            
+        {
+            ret = unsubscribeFleetTopic(h);
+
+            if(ret == true)
+            {
+                JSONStatus_t jsonResult;
+                char *value, tQuery[24] = {0,};
+
+                strcpy(tQuery, "thingName");
+                size_t valueLength, queryLength = strlen(tQuery);
+
+                jsonResult = JSON_Validate(message->payload, message->payloadlen);
+
+                if(jsonResult == JSONSuccess)
+                {
+                    jsonResult = JSON_Search(message->payload, message->payloadlen,
+                    tQuery, queryLength, &value, &valueLength);
+
+                    printf("[LOG] Client Id : %s\n", value);
+
+                    strcpy(gClientId, value);
+                }
+
+                closeConnection(h);
+                mosquitto_destroy(h->m);
+
+
+            }
+        }
         break;
         default:
         break;
@@ -1173,14 +1204,44 @@ static bool subscribeFleetProvisioning(handle_t *h)
 {
     bool ret;
     int i = 0;
-    for(i = 0 ; i < 5 ; i++)
+    for(i = 0 ; i < 4 ; i++)
     {
         ret = subscribe(h, TopicFilter[i]);
-        if(!ret)
-            return ret;
+        if(ret != MOSQ_ERR_SUCCESS)
+            errx(1, "subscribe topic error\n");
     }
     
-    return ret;
+    if(ret != MOSQ_ERR_SUCCESS)
+        return false;
+    else
+        return true;    
+}
+
+/*-----------------------------------------------------------*/
+
+static bool unsubscribeFleetProvisioning(handle_t *h)
+{
+    bool ret;
+
+    int i = 0;
+    for(i = 0 ; i < 4 ; i++)
+    {
+        ret = unsubscribe(h, TopicFilter[i]);
+        if(ret != MOSQ_ERR_SUCCESS)
+            errx(1, "unsubscribe topic error\n");
+    }
+
+    if(ret != MOSQ_ERR_SUCCESS)
+        return false;
+    else
+        return true;
+}
+
+/*-----------------------------------------------------------*/
+
+static bool changeConnectionInformation(handle_t *h)
+{
+
 }
 
 /*-----------------------------------------------------------*/
@@ -1211,9 +1272,8 @@ int main( int argc,
         errx( 1, "fatal error" );
     }
 
-    //publish(h, TopicFilter[PROVISIONING_CC], MqttExMessage[0]);
+    publish(h, TopicFilter[PROVISIONING_CC], MqttExMessage[0]);
 
-    (void)unsubscribe(h, TopicFilter[OPENWORLD]);
     h->lastPrompt = time( NULL );
 
     while( 1 )
