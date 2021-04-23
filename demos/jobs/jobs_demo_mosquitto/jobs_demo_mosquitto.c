@@ -902,7 +902,7 @@ int main( int argc,
         errx( 1, "fatal error" );
     }
 
-
+    publish(h, TopicFilter[OPENWORLD], "{\"hello\" : \"World\"}");
 
     h->lastPrompt = time( NULL );
 
