@@ -55,7 +55,6 @@
 #endif
 
 #include "demo_config.h"
-#include "jobs.h"
 #include "core_json.h"
 
 /*-----------------------------------------------------------*/
@@ -285,39 +284,7 @@ static void on_subscribe( struct mosquitto * m,
  * @return true if the broker granted the subscription;
  * false otherwise
  */
-static bool subscribe( handle_t * h,
-                       JobsTopic_t api );
-
-/**
- * @brief Publish a status update for a job ID to the Jobs service.
- *
- * @param[in] h runtime state handle
- * @param[in] jobid the job ID
- * @param[in] jobidLength size of the job ID string
- * @param[in] report body of the update
- *
- * @return true if libmosquitto accepted the publish message;
- * false otherwise
- *
- * @note This does not call mosquitto_loop(); it expects main() to do so.
- */
-static bool sendUpdate( handle_t * h,
-                        char * jobid,
-                        size_t jobidLength,
-                        char * report );
-
-/**
- * @brief Read job ID and URL from a JSON job document.
- *
- * @param[in] h runtime state handle
- * @param[in] message an MQTT publish message
- *
- * @return true if values were found and copied to the handle;
- * false otherwise
- */
-static bool parseJob( handle_t * h,
-                      const struct mosquitto_message * message );
-
+static bool subscribe( handle_t * h, char *in_topic);
 /**
  * @brief The libmosquitto callback for a received publish message.
  *
@@ -331,43 +298,6 @@ static bool parseJob( handle_t * h,
 void on_message( struct mosquitto * m,
                  void * p,
                  const struct mosquitto_message * message );
-
-/**
- * @brief Publish a request to the Jobs service to describe the next job.
- *
- * @param[in] h runtime state handle
- *
- * @return true if libmosquitto accepted the publish message;
- * false otherwise
- *
- * @note This does not call mosquitto_loop(); it expects main() to do so.
- */
-static bool sendDescribeNext( handle_t * h );
-
-/**
- * @brief Checks status of the download process.
- *
- * @param[in] h runtime state handle
- */
-static void checkChild( handle_t * h );
-
-/**
- * @brief Launch a download process.
- *
- * @param[in] h runtime state handle
- *
- * @return true if fork() succeeded;
- * false otherwise
- */
-static bool download( handle_t * h );
-
-/**
- * @brief Kill a download process.
- *
- * @param[in] h runtime state handle
- */
-static void cancelDownload( handle_t * h );
-
 /**
  * @brief The libmosquitto callback for log messages.
  *
@@ -418,6 +348,37 @@ static void teardown( int x,
  * @param[in] x one of "IN_PROGRESS", "SUCCEEDED", or "FAILED"
  */
 #define makeReport_( x )    "{\"status\":\"" x "\"}"
+#define TOPIC_LENGTH		9
+
+/**
+ * @brief Initialize Topic name
+ */
+
+char TopicFilter[TOPIC_LENGTH][256] = {
+	TEMPLATE_REJECT_TOPIC,
+	CERTIFICATE_REJECT_TOPIC,
+	TEMPLATE_ACCEPT_TOPIC,
+	CERTIFICATE_ACCEPT_TOPIC,
+	"openworld",
+	PROVISIONING_CERT_CREATE_TOPIC,
+	PROVISIONING_TEMPLATE_TOPIC,
+    ""
+};
+
+/**
+ * @brief Initialize Topic name length
+ */
+
+uint16_t TopicFilterLength[TOPIC_LENGTH] = {
+	TEMPLATE_RJT_LENGTH,
+	CERTIFICATE_RJT_LENGTH,
+	TEMPLATE_ACC_LENGTH,
+	CERTIFICATE_RJT_LENGTH,
+	sizeof("openworld")-1,
+	PROVISIONING_CC_LENGTH,
+	PROVISIONING_TT_LENGTH,
+    0
+};
 
 /*-----------------------------------------------------------*/
 
@@ -452,7 +413,7 @@ void initHandle( handle_t * p )
     /* initialize to -1, set by on_connect() to 0 or greater */
     h.connectError = -1;
     /* initialize to -1, set by on_subscribe() to 0 or greater */
-    h.subscribeQOS = -1;
+    h.subscribeQOS = 1;
 
     *p = h;
 }
@@ -477,12 +438,6 @@ static bool requiredArgs( handle_t * h )
     checkString( host );
     checkString( certfile );
     checkString( keyfile );
-
-    if( h->nameLength > JOBS_THINGNAME_MAX_LENGTH )
-    {
-        ret = false;
-        warnx( "name length must not exceed %d", JOBS_THINGNAME_MAX_LENGTH );
-    }
 
 #define checkPath( x )                                                            \
     if( ( h->x != NULL ) && ( h->x[ 0 ] != '\0' ) && ( stat( h->x, &s ) == -1 ) ) \
@@ -732,32 +687,18 @@ static void on_subscribe( struct mosquitto * m,
 
 /*-----------------------------------------------------------*/
 
-static bool subscribe( handle_t * h,
-                       JobsTopic_t api )
+static bool subscribe( handle_t * h, char *in_topic)
 {
     int ret;
-    char topic[ JOBS_API_MAX_LENGTH( JOBS_THINGNAME_MAX_LENGTH ) ];
-    JobsStatus_t jobs_ret;
     size_t i;
 
     assert( h != NULL );
     assert( MQTT_QOS <= 2 );
 
-    /* populate the topic buffer with the specified API for use
-     * in a subscription request */
-    jobs_ret = Jobs_GetTopic( topic,
-                              sizeof( topic ),
-                              h->name,
-                              h->nameLength,
-                              api,
-                              NULL );
-    assert( jobs_ret == JobsSuccess );
-    ( void ) jobs_ret;
-
     /* set to default value */
     h->subscribeQOS = -1;
-
-    ret = mosquitto_subscribe( h->m, NULL, topic, MQTT_QOS );
+    
+    ret = mosquitto_subscribe( h->m, NULL, in_topic, MQTT_QOS );
 
     /* expect the on_subscribe() callback to update h->subscribeQOS */
     for( i = 0; ( i < MAX_LOOPS ) &&
@@ -781,346 +722,17 @@ static bool subscribe( handle_t * h,
 
 /*-----------------------------------------------------------*/
 
-static bool sendUpdate( handle_t * h,
-                        char * jobid,
-                        size_t jobidLength,
-                        char * report )
-{
-    bool ret = true;
-    JobsStatus_t jobs_ret;
-    int m_ret;
-    char topic[ JOBS_API_MAX_LENGTH( JOBS_THINGNAME_MAX_LENGTH ) ];
-
-    assert( h != NULL );
-    assert( ( jobid != NULL ) && ( jobidLength > 0 ) );
-    assert( report != NULL );
-
-    /* populate the topic buffer for an UpdateJobExecution request */
-    jobs_ret = Jobs_Update( topic,
-                            sizeof( topic ),
-                            h->name,
-                            h->nameLength,
-                            jobid,
-                            jobidLength,
-                            NULL );
-    assert( jobs_ret == JobsSuccess );
-    ( void ) jobs_ret;
-
-    m_ret = mosquitto_publish( h->m,
-                               NULL,
-                               topic,
-                               strlen( report ),
-                               report,
-                               MQTT_QOS,
-                               false );
-
-    if( m_ret != MOSQ_ERR_SUCCESS )
-    {
-        warnx( "sendUpdate: %s", mosquitto_strerror( ret ) );
-        ret = false;
-    }
-
-    return ret;
-}
-
-/*-----------------------------------------------------------*/
-
-static bool parseJob( handle_t * h,
-                      const struct mosquitto_message * message )
-{
-    bool ret = false;
-    JSONStatus_t json_ret;
-    char * jobid = NULL, * url = NULL;
-    size_t jobidLength = 0, urlLength = 0;
-
-    assert( h != NULL );
-    assert( message != NULL );
-    assert( ( message->payload != NULL ) && ( message->payloadlen > 0 ) );
-
-    json_ret = JSON_Validate( message->payload, message->payloadlen );
-
-    if( json_ret != JSONSuccess )
-    {
-        warnx( "invalid job document" );
-    }
-    else
-    {
-        json_ret = JSON_Search( message->payload,
-                                message->payloadlen,
-                                "execution.jobId",
-                                ( sizeof( "execution.jobId" ) - 1 ),
-                                &jobid,
-                                &jobidLength );
-    }
-
-    if( json_ret == JSONSuccess )
-    {
-        json_ret = JSON_Search( message->payload,
-                                message->payloadlen,
-                                "execution.jobDocument.url",
-                                ( sizeof( "execution.jobDocument.url" ) - 1 ),
-                                &url,
-                                &urlLength );
-    }
-
-    if( json_ret == JSONSuccess )
-    {
-        jobid = strndup( jobid, jobidLength );
-        url = strndup( url, urlLength );
-        assert( ( jobid != NULL ) && ( url != NULL ) );
-
-        h->jobid = jobid;
-        h->jobidLength = jobidLength;
-        h->url = url;
-        h->urlLength = urlLength;
-        ret = true;
-    }
-    else
-    {
-        if( jobid != NULL )
-        {
-            jobid[ jobidLength ] = '\0';
-            warnx( "missing url; failing job id: %s", jobid );
-            ( void ) sendUpdate( h, jobid, jobidLength, makeReport_( "FAILED" ) );
-        }
-    }
-
-    return ret;
-}
-
-/*-----------------------------------------------------------*/
-
 void on_message( struct mosquitto * m,
                  void * p,
                  const struct mosquitto_message * message )
 {
     handle_t * h = p;
-    JobsStatus_t ret;
-    JobsTopic_t api;
-    char * jobid;
-    uint16_t jobidLength;
 
     assert( h != NULL );
     assert( message->topic != NULL );
 
-    /* identify a Jobs API and a job ID represented in a topic buffer */
-    ret = Jobs_MatchTopic( message->topic,
-                           strlen( message->topic ),
-                           h->name,
-                           h->nameLength,
-                           &api,
-                           &jobid,
-                           &jobidLength );
-    assert( ret != JobsBadParameter );
-    ( void ) ret;
-
-    switch( api )
-    {
-        /* a job has been added or the current job was canceled */
-        case JobsNextJobChanged:
-        /* response to a request to describe the next job */
-        case JobsDescribeSuccess:
-
-            if( h->runStatus == Running )
-            {
-                h->forceUpdate = true;
-                h->forcePrompt = true;
-            }
-            else if( h->runStatus == None )
-            {
-                if( parseJob( h, message ) == true )
-                {
-                    h->runStatus = Ready;
-                }
-            }
-            else
-            {
-                warnx( "unexpected message, topic: %s", message->topic );
-            }
-
-            break;
-
-        /* The last update was rejected. */
-        case JobsUpdateFailed:
-
-            if( ( h->runStatus == Running ) &&
-                ( h->jobid != NULL ) &&
-                ( h->jobidLength == jobidLength ) &&
-                ( strncmp( h->jobid, jobid, jobidLength ) == 0 ) )
-            {
-                h->runStatus = Cancel;
-            }
-            else
-            {
-                jobid[ jobidLength ] = '\0';
-                warnx( "update failure for unknown job id: %s", jobid );
-            }
-
-            break;
-
-        /* We seem to receive these even without a subscription. */
-        case JobsUpdateSuccess:
-            info( "job update success" );
-            break;
-
-        case JobsInvalidTopic:
-        default:
-            warnx( "unknown topic: %s", message->topic );
-            break;
-    }
+    info("on topic : %s / on message : %s\n", message->topic, message->payload);
 }
-
-/*-----------------------------------------------------------*/
-
-static bool sendDescribeNext( handle_t * h )
-{
-    bool ret = true;
-    JobsStatus_t jobs_ret;
-    int m_ret;
-    char topic[ JOBS_API_MAX_LENGTH( JOBS_THINGNAME_MAX_LENGTH ) ];
-
-    assert( h != NULL );
-
-    /* populate the topic buffer for a DescribeJobExecution request */
-    jobs_ret = Jobs_Describe( topic,
-                              sizeof( topic ),
-                              h->name,
-                              h->nameLength,
-                              JOBS_API_JOBID_NEXT,
-                              JOBS_API_JOBID_NEXT_LENGTH,
-                              NULL );
-    assert( jobs_ret == JobsSuccess );
-    ( void ) jobs_ret;
-
-    m_ret = mosquitto_publish( h->m, NULL, topic, 0, NULL, MQTT_QOS, false );
-
-    if( m_ret != MOSQ_ERR_SUCCESS )
-    {
-        warnx( "sendDescribeNext: %s", mosquitto_strerror( ret ) );
-        ret = false;
-    }
-
-    return ret;
-}
-
-/*-----------------------------------------------------------*/
-
-static void checkChild( handle_t * h )
-{
-    pid_t pid;
-    int status;
-
-    assert( h != NULL );
-    assert( h->child > 0 );
-
-    /* Has the download process exited? */
-    pid = waitpid( h->child, &status, WNOHANG );
-    assert( pid != -1 );
-
-    switch( pid )
-    {
-        /* still running */
-        case 0:
-            h->report = makeReport_( "IN_PROGRESS" );
-            break;
-
-        /* exited */
-        default:
-
-            /* process exit status 0 means success */
-            if( ( pid == h->child ) &&
-                ( WIFEXITED( status ) ) &&
-                ( WEXITSTATUS( status ) == 0 ) )
-            {
-                info( "completed job id: %s", h->jobid );
-                h->report = makeReport_( "SUCCEEDED" );
-            }
-            else
-            {
-                info( "failed job id: %s", h->jobid );
-                h->report = makeReport_( "FAILED" );
-            }
-
-            h->child = 0;
-            h->runStatus = None;
-    }
-}
-
-/*-----------------------------------------------------------*/
-
-static bool download( handle_t * h )
-{
-    bool ret = true;
-    pid_t pid;
-
-    assert( h != NULL );
-    assert( h->jobid != NULL );
-    assert( h->url != NULL );
-
-    /* run download as a separate process */
-    pid = fork();
-
-#define dir_format    "%s/job-%s.XXXXXX"
-
-    if( pid == 0 )
-    {
-        /* create a unique download directory */
-        char dir_name[ sizeof( DESTINATION_PREFIX ) + h->jobidLength + sizeof( dir_format ) ];
-
-        snprintf( dir_name, sizeof( dir_name ), dir_format, DESTINATION_PREFIX, h->jobid );
-
-        if( mkdtemp( dir_name ) == NULL )
-        {
-            err( 1, "mkdtemp %s", dir_name );
-        }
-
-        if( chdir( dir_name ) == -1 )
-        {
-            err( 1, "chdir %s", dir_name );
-        }
-
-        info( "download directory: %s", dir_name );
-
-        /* exec the download program */
-        CURL( h->url );
-        /* arrive here only if exec failed */
-        err( 1, "execl:" );
-    }
-
-    free( h->url );
-    h->url = NULL;
-    h->child = pid;
-
-    if( pid == -1 )
-    {
-        warn( "fork" );
-        ret = false;
-    }
-
-    return ret;
-}
-
-/*-----------------------------------------------------------*/
-
-static void cancelDownload( handle_t * h )
-{
-    assert( h != NULL );
-
-    if( h->child > 0 )
-    {
-        int ret = kill( h->child, SIGKILL );
-        assert( ( ret == 0 ) || ( errno == ESRCH ) );
-
-        if( ret == 0 )
-        {
-            /* discard the download process exit status */
-            ( void ) wait( NULL );
-        }
-    }
-
-    h->child = 0;
-}
-
 /*-----------------------------------------------------------*/
 
 static void on_log( struct mosquitto * m,
@@ -1198,6 +810,7 @@ static void teardown( int x,
 
 /*-----------------------------------------------------------*/
 
+
 int main( int argc,
           char * argv[] )
 {
@@ -1218,14 +831,7 @@ int main( int argc,
         errx( 1, "fatal error" );
     }
 
-    if( subscribe( h, JobsNextJobChanged ) == false )
-    {
-        errx( 1, "fatal error" );
-    }
-
-    info( "requesting first job" );
-
-    if( sendDescribeNext( h ) == false )
+    if( subscribe(h, TopicFilter[0]) == false )
     {
         errx( 1, "fatal error" );
     }
@@ -1245,76 +851,6 @@ int main( int argc,
         }
 
         now = time( NULL );
-
-        switch( h->runStatus )
-        {
-            case None:
-
-                if( ( h->forcePrompt == true ) ||
-                    ( ( h->pollinv != 0 ) && ( now > ( h->lastPrompt + h->pollinv ) ) ) )
-                {
-                    h->lastPrompt = now;
-                    info( "requesting job" );
-                    ret = sendDescribeNext( h );
-                    h->forcePrompt = false;
-                }
-
-                break;
-
-            case Ready:
-                info( "starting job id: %s", h->jobid );
-                ret = download( h );
-
-                if( ret == true )
-                {
-                    h->runStatus = Running;
-                    info( "sending first update" );
-                    checkChild( h );
-                    ret = sendUpdate( h, h->jobid, h->jobidLength, h->report );
-                    h->lastUpdate = now;
-                }
-
-                break;
-
-            case Running:
-
-                checkChild( h );
-
-                /* send an update if the job exited, was "force" canceled, or a periodic update is due */
-                if( ( h->runStatus == None ) ||
-                    ( h->forceUpdate == true ) ||
-                    ( ( h->updateinv != 0 ) && ( now > ( h->lastUpdate + h->updateinv ) ) ) )
-                {
-                    info( "updating job id: %s", h->jobid );
-                    ret = sendUpdate( h, h->jobid, h->jobidLength, h->report );
-                    h->lastUpdate = now;
-                    h->forceUpdate = false;
-                }
-
-                break;
-
-            case Cancel:
-                info( "canceled job id: %s", h->jobid );
-                cancelDownload( h );
-                h->runStatus = None;
-        }
-
-        if( ret == false )
-        {
-            errx( 1, "fatal error" );
-        }
-
-        if( ( h->runStatus == None ) && ( h->jobid != NULL ) )
-        {
-            free( h->jobid );
-            h->jobid = NULL;
-            h->jobidLength = 0;
-
-            if( h->runOnce == true )
-            {
-                break;
-            }
-        }
     }
 
     exit( EXIT_SUCCESS );
