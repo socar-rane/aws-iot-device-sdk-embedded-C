@@ -407,6 +407,10 @@ static bool registerThing(char *token, size_t tokenLength);
  */ 
 static bool unsubscribe( handle_t *h, char *in_topic);
 
+/**
+ * @brief Create UUID String
+ */ 
+static void createUUIDStr();
 
 
 /**
@@ -1027,6 +1031,7 @@ static bool publish( handle_t *h, char *in_topic, char *in_message)
     assert( h != NULL);
     assert( MQTT_QOS <= 2 );
 
+    info("publish message : %s\n", in_message);
     ret = mosquitto_publish(h->m, NULL, in_topic, strlen(in_message), in_message, MQTT_QOS, 0);
     
     for(i = 0 ; (i < MAX_LOOPS) && (ret == MOSQ_ERR_SUCCESS) ; i++)
@@ -1264,6 +1269,7 @@ int main( int argc,
     handle_t h_, * h = &h_;
     time_t now;
 
+    createUUIDStr();
     initHandle( h );
 
     if( parseArgs( h, argc, argv ) == false )
