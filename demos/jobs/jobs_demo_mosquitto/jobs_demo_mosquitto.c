@@ -1213,7 +1213,7 @@ int main( int argc,
 
     //publish(h, TopicFilter[PROVISIONING_CC], MqttExMessage[0]);
 
-    //(void)unsubscribe(h, TopicFilter[OPENWORLD]);
+    (void)unsubscribe(h, TopicFilter[OPENWORLD]);
     h->lastPrompt = time( NULL );
 
     while( 1 )
