@@ -78,6 +78,7 @@
  */
 #define ALPN_NAME               "x-amzn-mqtt-ca"
 
+#define NETWORK_BUFFER_SIZE    (4096)
 
 /*-----------------------------------------------------------*/
 
@@ -277,16 +278,27 @@ static void on_subscribe( struct mosquitto * m,
 
 
 /**
- * @brief Subscribe to a Jobs topic.
+ * @brief Subscribe to topic.
  *
  * @param[in] h runtime state handle
- * @param[in] api the desired Jobs topic
+ * @param[in] in_topic the desired topic
  *
  * @return true if the broker granted the subscription;
  * false otherwise
  */
 static bool subscribe( handle_t * h, char *in_topic);
+
+/**
+ * @brief Publish to topic.
+ *
+ * @param[in] h runtime state handle
+ * @param[in] in_topic the desired topic
+ * @param[in] in_message an MQTT publish message
+ * @return true if the broker granted the publish;
+ * false otherwise
+ */
 static bool publish( handle_t *h, char *in_topic, char *in_message);
+
 /**
  * @brief The libmosquitto callback for a received publish message.
  *
@@ -346,6 +358,49 @@ static void teardown( int x,
  */
 
 static bool subscribeFleetProvisioning(handle_t *h);
+
+/**
+ * @brief Find topic index function
+ */ 
+int findTopicIndex(char *in_topic);
+
+/**
+ * @brief Parse Certificate And Keys
+ * 
+ * @param[in] pBuffer Incoming Publish Payload
+ * @param[in] pBufferLength Incoming Publish Payload Length
+ */
+
+static bool assemble_certificates(char *pBuffer, size_t pBufferLength);
+
+/**
+ * @brief Convert JSON to Cert file functions
+ * 
+ * @param[in] inStr Input JSON String
+ * @param[in] inStrLength Input JSON String length
+ * @param[in] fp cert file descripter
+ */
+
+static int JSONtoCertFile(char *inStr, int inStrLength, FILE *fp);
+
+/**
+ * @brief Register new things
+ * 
+ * @param[in] token  Input Certificates Ownership Token
+ * @param[in] tokenLength Input Token Length
+ */ 
+static bool registerThing(char *token, size_t tokenLength);
+
+/**
+ * @brief Unsubscribe from Topic
+ * 
+ * @param[in] h runtime state handle
+ * @param[in] in_topic unsubscribe topic
+ */ 
+static bool unsubscribe( handle_t *h, char *in_topic);
+
+
+
 /**
  * @brief Log an informational message.
  */
@@ -409,10 +464,28 @@ char MqttExMessage[4][1024] = {
     "{}"
 };
 
+/// @brief Create Certificate Parsing query Key
+char queryCertificate[4][64] = 
+{
+	"certificateId",
+	"certificatePem",
+	"privateKey",
+	"certificateOwnershipToken"
+};
+
+/// @brief Endpoint Device UUID
+char uuidStr[64] = {0,};
+
+/// @brief New Session Client Identifier 
+char deviceUUID[128] = {0,};
+
 /**
  * @brief Publish Payload Message Length Array
  */ 
 uint16_t MqttExMessageLength[4] = {0, };
+
+/// @brief Global Certificate ID
+char gCertificateId[16] = {0,};
 
 /*-----------------------------------------------------------*/
 
@@ -618,6 +691,167 @@ static bool parseArgs( handle_t * h,
 
     return ret;
 }
+/*-----------------------------------------------------------*/
+
+static bool unsubscribeFleetTopic()
+{
+
+}
+
+/*-----------------------------------------------------------*/
+
+static bool registerThing(char *token, size_t tokenLength)
+{
+	JSONStatus_t jsonResult;
+
+	char parseToken[1024] = {0,};
+	strncpy(parseToken, token, sizeof(char)*tokenLength);
+	sprintf(MqttExMessage[1], "{\"certificateOwnershipToken\":\"%s\",\"parameters\":{\"SerialNumber\":\"%s\"}}",parseToken, uuidStr);
+	MqttExMessageLength[1] = strlen(MqttExMessage[1]);
+
+	jsonResult = JSON_Validate(MqttExMessage[1], MqttExMessageLength[1]);
+
+	if(jsonResult == JSONSuccess)
+		return true;
+	else
+		return false;
+}
+
+/*-----------------------------------------------------------*/
+
+static int JSONtoCertFile(char *inStr, int inStrLength, FILE *fp)
+{
+	char fileBuffer[NETWORK_BUFFER_SIZE] = {0,};
+	strncpy(fileBuffer, inStr, sizeof(char)*inStrLength);
+	char tempPtr[2048] = {0,};
+	char *ptr = strstr(fileBuffer, "\\");
+	int tPtrSize = 0, i = 0;
+	tPtrSize = strlen(fileBuffer) - strlen(ptr);
+	
+	while(ptr != NULL)
+	{
+		memset(tempPtr, 0, sizeof(tempPtr));
+		if(i == 0)
+		{
+			tPtrSize = strlen(fileBuffer) - strlen(ptr);
+			strncpy(tempPtr, fileBuffer, tPtrSize);
+			i = tPtrSize;
+		}
+		else
+		{
+			tPtrSize = strlen(fileBuffer) - i - strlen(ptr) - 2;
+			strncpy(tempPtr, fileBuffer + i + 2, tPtrSize);
+			i = tPtrSize + i + 2;
+		}
+		ptr = strstr(ptr+1, "\\");
+		fprintf(fp, "%s\n", tempPtr);
+	}
+	
+	return 0;
+}
+
+/*-----------------------------------------------------------*/
+
+static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
+{
+	char tempId[16], certificateId[16] = {0,};
+	char certFileName[36] = {0,}, privateFileName[36] = {0,};
+	char payloadBuffer[NETWORK_BUFFER_SIZE];
+	
+	int convertResult = 0;
+	JSONStatus_t jsonResult;
+	size_t valueLength;
+	size_t queryLength = strlen(queryCertificate[0]);
+	char *value;
+
+	info("Input JSON String : %s / Length : %d\n", pBuffer, pBufferLength);
+
+	strncpy(payloadBuffer, pBuffer, sizeof(char)*pBufferLength);
+
+	jsonResult = JSON_Validate(pBuffer, pBufferLength);
+
+	if(jsonResult == JSONSuccess)
+	{
+		jsonResult = JSON_Search(payloadBuffer, pBufferLength, queryCertificate[0], queryLength,
+			&value, &valueLength);
+
+		if(jsonResult == JSONSuccess)
+		{
+			char save = value[valueLength];
+			value[valueLength] = '\0';
+			strncpy(tempId, value, sizeof(char) * 10);
+			strcpy(certificateId, tempId);
+			
+			memset(payloadBuffer, 0, sizeof(char) * pBufferLength);
+			strncpy(payloadBuffer, pBuffer, sizeof(char)*pBufferLength);
+
+			// Cert Key Parsing
+			queryLength = strlen(queryCertificate[1]);
+			jsonResult = JSON_Search(payloadBuffer, pBufferLength, queryCertificate[1], queryLength,
+				&value, &valueLength);
+			
+			if(jsonResult == JSONSuccess)
+			{
+				FILE *fp;
+				certificateId[strlen(certificateId)] = '\0';
+				sprintf(certFileName, "%s/%s-certificate.pem.crt", CERTFILE_PATH, certificateId);
+				fp = fopen(certFileName, "w");
+				
+				convertResult = JSONtoCertFile(value, valueLength, fp);
+				fclose(fp);
+			}
+			else
+			{
+				errx(1, "JSON Search Error\n");
+			}
+
+			// Private Key Parsing
+			queryLength = strlen(queryCertificate[2]);
+			jsonResult = JSON_Search(payloadBuffer, pBufferLength, queryCertificate[2], queryLength,
+				&value, &valueLength);
+			
+			if(jsonResult == JSONSuccess)
+			{
+				FILE *fp;
+				tempId[strlen(tempId)] = '\0';
+				sprintf(privateFileName, "%s/%s-private.pem.key", CERTFILE_PATH, tempId);
+                strcpy(gCertificateId, tempId);
+				fp = fopen(privateFileName, "w");
+
+				convertResult = JSONtoCertFile(value, valueLength, fp);
+				fclose(fp);
+			}
+
+			queryLength = strlen(queryCertificate[3]);
+			jsonResult = JSON_Search(payloadBuffer, pBufferLength, queryCertificate[3], queryLength,
+				&value, &valueLength);
+
+			// certificate Ownership Parsing
+			if(jsonResult == JSONSuccess)
+			{
+				convertResult = registerThing(value, valueLength);
+				
+                if(convertResult != EXIT_SUCCESS)
+                {
+                    errx(1, "Registration new service failed\n");
+                    return false;
+                }
+                else
+                    return true;
+			}
+		}
+		else
+		{
+			errx(1, "JSON Search Error\n");
+            return false;
+		}
+	}
+	else
+	{
+		errx(1, "JSON Validation Error\n");
+        return false;
+	}
+}
 
 /*-----------------------------------------------------------*/
 
@@ -721,6 +955,34 @@ static void on_subscribe( struct mosquitto * m,
 
 /*-----------------------------------------------------------*/
 
+static bool unsubscribe( handle_t *h, char *in_topic)
+{
+    int ret;
+    size_t i;
+
+    assert( h != NULL );
+    assert( MQTT_QOS <= 2 );
+
+    ret = mosquitto_unsubscribe(h->m, NULL, in_topic);
+
+    for( i = 0; ( i < MAX_LOOPS ) &&
+         ( ret == MOSQ_ERR_SUCCESS ) &&
+         ( h->subscribeQOS == -1 ); i++ )
+    {
+        ret = mosquitto_loop( h->m, MQTT_SHORT_WAIT_TIME, 1 );
+    }
+
+    if(ret != MOSQ_ERR_SUCCESS)
+    {
+        warnx("unsubscribe : %s", mosquitto_strerror(ret));
+        return false;
+    }
+    else
+        return true;
+}
+
+/*-----------------------------------------------------------*/
+
 static bool subscribe( handle_t * h, char *in_topic)
 {
     int ret;
@@ -764,8 +1026,6 @@ static bool publish( handle_t *h, char *in_topic, char *in_message)
     assert( h != NULL);
     assert( MQTT_QOS <= 2 );
 
-    h->subscribeQOS = -1;
-
     ret = mosquitto_publish(h->m, NULL, in_topic, strlen(in_message), in_message, MQTT_QOS, 0);
     
     for(i = 0 ; (i < MAX_LOOPS) && (ret == MOSQ_ERR_SUCCESS) ; i++)
@@ -784,16 +1044,53 @@ static bool publish( handle_t *h, char *in_topic, char *in_message)
 
 /*-----------------------------------------------------------*/
 
+int findTopicIndex(char *in_topic)
+{
+    int i = 0;
+
+    for(i = 0 ; i < TOPIC_LENGTH ; i++)
+    {
+        if(strcmp(in_topic, TopicFilter[i]) == 0)
+        {
+            return i;
+        }
+    }
+}
+
+
+
 void on_message( struct mosquitto * m,
                  void * p,
                  const struct mosquitto_message * message )
 {
     handle_t * h = p;
+    bool ret = false;
 
     assert( h != NULL );
     assert( message->topic != NULL );
 
+    int index = findTopicIndex(message->topic);
+
     info("on_message topic : %s / on message : %s\n", message->topic, message->payload);
+
+    switch(index)
+    {
+        case CERTIFICATE_ACCEPT:
+            ret = assemble_certificates(message->payload, message->payloadlen);
+
+            if(ret == true)
+                publish(h, TopicFilter[PROVISIONING_TT], MqttExMessage[1]);
+            else
+                errx(1, "Assemble certificates failed\n");
+        break;
+        
+        case TEMPLATE_ACCEPT:
+            
+        break;
+        default:
+        break;
+    }
+
 }
 
 /*-----------------------------------------------------------*/
@@ -914,8 +1211,9 @@ int main( int argc,
         errx( 1, "fatal error" );
     }
 
-    publish(h, TopicFilter[PROVISIONING_CC], MqttExMessage[0]);
+    //publish(h, TopicFilter[PROVISIONING_CC], MqttExMessage[0]);
 
+    //(void)unsubscribe(h, TopicFilter[OPENWORLD]);
     h->lastPrompt = time( NULL );
 
     while( 1 )
