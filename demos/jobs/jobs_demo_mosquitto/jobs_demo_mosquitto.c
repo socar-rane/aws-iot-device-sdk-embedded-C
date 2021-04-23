@@ -1272,9 +1272,11 @@ static bool changeConnectionInformation(handle_t *h)
     h->name = gClientId;
     h->nameLength = strlen(gClientId);
 
-    sprintf(certFile, "%s/%s-certificate.pem.crt", CERTFILE_PATH, gCertificateId);
-    sprintf(privateKeyFile, "%s/%s-private.pem.key", CERTFILE_PATH, gCertificateId);
+    sprintf(certFile, "./%s/%s-certificate.pem.crt", CERTFILE_PATH, gCertificateId);
+    sprintf(privateKeyFile, "./%s/%s-private.pem.key", CERTFILE_PATH, gCertificateId);
 
+    info("cert file : %s\n", certFile);
+    info("private file : %s\n", privateKeyFile);
     h->certfile = certFile;
     h->keyfile = privateKeyFile;
 }
