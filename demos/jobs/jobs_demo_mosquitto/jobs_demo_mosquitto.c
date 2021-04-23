@@ -881,7 +881,7 @@ static bool subscribeFleetProvisioning(handle_t *h)
 {
     bool ret;
     int i = 0;
-    for(i = 0 ; i < 4 ; i++)
+    for(i = 0 ; i < 5 ; i++)
     {
         ret = subscribe(h, TopicFilter[i]);
         if(!ret)
