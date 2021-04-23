@@ -874,6 +874,8 @@ static void on_connect( struct mosquitto * m,
 
     assert( h != NULL );
 
+    info("connection error : %d\n", h->connectError);
+
     h->connectError = rc;
 }
 
@@ -886,12 +888,13 @@ static bool connect( handle_t * h )
 
     assert( h != NULL );
     assert( h->m != NULL );
-    assert( h->connectError == -1 );
 
     info("cafile : %s\n", h->cafile);
     info("capath : %s\n", h->capath);
     info("certfile : %s\n", h->certfile);
     info("keyfile : %s\n", h->keyfile);
+
+    assert( h->connectError == -1 );
 
     if( h->port == 443 )
     {
@@ -1127,8 +1130,6 @@ void on_message( struct mosquitto * m,
                     strcpy(gClientId, value);
                 }
 
-                set_in_progress = SET_IN_PROGRESS;
-
                 closeConnection(h);
                 //mosquitto_destroy(h->m);
 
@@ -1341,8 +1342,8 @@ int main( int argc, char * argv[] )
             if( (setup(h) == false) || (connect(h) == false))
             {
                 errx( 1, "fatal error" );
-                set_in_progress = SET_COMPLETE;
             }
+            set_in_progress = SET_IN_PROGRESS;
             subscribe(h, TopicFilter[OPENWORLD]);
             completeFlag[1] = false;
         }
