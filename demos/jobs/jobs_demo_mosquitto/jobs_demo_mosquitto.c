@@ -888,6 +888,11 @@ static bool connect( handle_t * h )
     assert( h->m != NULL );
     assert( h->connectError == -1 );
 
+    info("cafile : %s\n", h->cafile);
+    info("capath : %s\n", h->capath);
+    info("certfile : %s\n", h->certfile);
+    info("keyfile : %s\n", h->keyfile);
+
     if( h->port == 443 )
     {
         #if ( LIBMOSQUITTO_VERSION_NUMBER >= 1006000 )
@@ -908,6 +913,8 @@ static bool connect( handle_t * h )
         info( "Connecting to %s, port %d.", h->host, h->port );
         ret = mosquitto_connect( h->m, h->host, h->port, MQTT_KEEP_ALIVE );
     }
+
+    info("ret : %s\n", mosquitto_strerror(ret));
 
     /* expect the on_connect() callback to update h->connectError */
     for( i = 0; ( i < MAX_LOOPS ) &&
@@ -1323,7 +1330,9 @@ int main( int argc, char * argv[] )
         if(completeFlag[0] == true)
         {
             publish(h, TopicFilter[PROVISIONING_TT], MqttExMessage[1]);
+            completeFlag[0] = false;
         }
+
         else if(completeFlag[1] == true)
         {
             if( (setup(h) == false) || (connect(h) == false))
@@ -1332,6 +1341,7 @@ int main( int argc, char * argv[] )
                 set_in_progress = SET_COMPLETE;
             }
             subscribe(h, TopicFilter[OPENWORLD]);
+            completeFlag[1] = false;
         }
 
         if(set_in_progress == SET_COMPLETE)
