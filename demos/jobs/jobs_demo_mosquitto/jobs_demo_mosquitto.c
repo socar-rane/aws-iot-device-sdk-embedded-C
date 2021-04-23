@@ -1134,6 +1134,9 @@ void on_message( struct mosquitto * m,
 
                 changeConnectionInformation(h);
 
+                mosquitto_destroy( h->m );
+                mosquitto_lib_cleanup();
+
                 completeFlag[1] = true;
                 
             }
@@ -1335,7 +1338,6 @@ int main( int argc, char * argv[] )
 
         else if(completeFlag[1] == true)
         {
-            h->connectError = 0;
             if( (setup(h) == false) || (connect(h) == false))
             {
                 errx( 1, "fatal error" );
