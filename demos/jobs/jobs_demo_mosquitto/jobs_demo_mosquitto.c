@@ -485,6 +485,7 @@ char queryCertificate[4][64] =
 	"certificateOwnershipToken"
 };
 
+bool completeFlag[2] = {false, false};
 /// @brief Endpoint Device UUID
 char uuidStr[64] = {0,};
 
@@ -1084,10 +1085,10 @@ void on_message( struct mosquitto * m,
         case CERTIFICATE_ACCEPT:
             ret = assemble_certificates(message->payload, message->payloadlen);
 
-            if(ret == true)
-                publish(h, TopicFilter[PROVISIONING_TT], MqttExMessage[1]);
-            else
+            if(ret == false)
                 errx(1, "Assemble certificates failed\n");
+            else
+                completeFlag[0] = true;
         break;
         
         case TEMPLATE_ACCEPT:
@@ -1290,13 +1291,18 @@ int main( int argc,
     }
 
     publish(h, TopicFilter[PROVISIONING_CC], MqttExMessage[0]);
-
+    
     h->lastPrompt = time( NULL );
 
     while( 1 )
     {
         bool ret = true;
         int m_ret;
+
+        if(completeFlag[0] == true)
+        {
+            publish(h, TopicFilter[PROVISIONING_TT], MqttExMessage[1]);
+        }
 
         m_ret = mosquitto_loop( h->m, MQTT_WAIT_TIME, 1 );
 
