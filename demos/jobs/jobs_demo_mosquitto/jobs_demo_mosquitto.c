@@ -1189,7 +1189,6 @@ static bool setup( handle_t * h )
         mosquitto_connect_callback_set( h->m, on_connect );
         mosquitto_subscribe_callback_set( h->m, on_subscribe );
         mosquitto_message_callback_set( h->m, on_message );
-        h->connectError = 0;
         ret = true;
     }
 
@@ -1336,6 +1335,7 @@ int main( int argc, char * argv[] )
 
         else if(completeFlag[1] == true)
         {
+            h->connectError = 0;
             if( (setup(h) == false) || (connect(h) == false))
             {
                 errx( 1, "fatal error" );
