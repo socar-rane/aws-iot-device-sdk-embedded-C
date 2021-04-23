@@ -791,13 +791,12 @@ void on_message( struct mosquitto * m,
 
 void on_publish( struct mosquitto *m,
                  void *p,
-                 const struct mosquitto_message *message)
+                 int mid)
 {
     handle_t * h = p;
     assert(h != NULL);
-    assert( message->topic != NULL );
-
-    info("on_publish topic : %s / on message : %s\n", message->topic, message->payload);
+    
+    info("on_publish topic : %s / on message : %s\n", h->m->will->topic, h->m->will->payload);
 }
 
 /*-----------------------------------------------------------*/
