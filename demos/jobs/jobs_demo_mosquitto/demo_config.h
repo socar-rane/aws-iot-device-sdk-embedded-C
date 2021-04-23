@@ -50,7 +50,7 @@
  * @brief Maximum duration in milliseconds of one mqtt_loop,
  * used after subscribe.
  */
-#define MQTT_WAIT_TIME          ( 10U * 1000U )
+#define MQTT_WAIT_TIME          ( 1U * 1000U )
 
 /**
  * @brief Maximum interval in seconds for pollinv and updateinv command line arguments.
