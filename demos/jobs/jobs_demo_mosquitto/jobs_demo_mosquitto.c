@@ -822,7 +822,6 @@ static void teardown( int x,
         free( h->jobid );
     }
 
-    cancelDownload( h );
     closeConnection( h );
     mosquitto_destroy( h->m );
     mosquitto_lib_cleanup();
