@@ -799,7 +799,7 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 			value[valueLength] = '\0';
 			strncpy(tempId, value, sizeof(char) * 10);
             info("value certificateId : %s\n", value);
-            info("temp certificateId : %s\n", value);
+            info("temp certificateId : %s\n", tempId);
 			strcpy(certificateId, tempId);
 			
 			memset(payloadBuffer, 0, sizeof(char) * pBufferLength);
@@ -814,8 +814,8 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 			{
 				FILE *fp;
 				certificateId[strlen(certificateId)] = '\0';
-				sprintf(certFileName, "%s/%s-certificate.pem.crt", CERTFILE_PATH, certificateId);
                 info("cert certificateId : %s\n", certificateId);
+				sprintf(certFileName, "%s/%s-certificate.pem.crt", CERTFILE_PATH, certificateId);
 				fp = fopen(certFileName, "w");
 				
 				convertResult = JSONtoCertFile(value, valueLength, fp);
@@ -835,10 +835,10 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 			{
 				FILE *fp;
 				tempId[strlen(tempId)] = '\0';
-                info("cert certificateId : %s\n", tempId);
+                info("tempid certificateId : %s\n", tempId);
 				sprintf(privateFileName, "%s/%s-private.pem.key", CERTFILE_PATH, tempId);
                 strcpy(gCertificateId, tempId);
-                info("cert certificateId : %s\n", gCertificateId);
+                info("gcert certificateId : %s\n", gCertificateId);
 				fp = fopen(privateFileName, "w");
 
 				convertResult = JSONtoCertFile(value, valueLength, fp);
