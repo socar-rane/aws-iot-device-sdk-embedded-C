@@ -73,6 +73,7 @@
 #define CURL( url ) \
     execl( "/usr/bin/curl", "curl", "-OLsSN", "--limit-rate", "10k", url, NULL )
 
+#define CERTFILE_PATH   "certificates"
 #define PRE_TEMPLATE_PATH "$aws/provisioning-templates/" PRODUCTION_TEMPLATE
 #define TEMPLATE_ACCEPT_TOPIC PRE_TEMPLATE_PATH "/provision/json/accepted"
 #define TEMPLATE_REJECT_TOPIC PRE_TEMPLATE_PATH "/provision/json/rejected"
