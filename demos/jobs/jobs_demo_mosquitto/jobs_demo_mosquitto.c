@@ -792,13 +792,9 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 	{
 		jsonResult = JSON_Search(payloadBuffer, pBufferLength, queryCertificate[0], queryLength,
 			&value, &valueLength);
-        info("value certificateId : %s\n", value);
 		if(jsonResult == JSONSuccess)
 		{
 			memcpy(tempId, value, 10);
-            
-            info("temp certificateId : %s\n", tempId);
-            info("gcert certificateId : %s\n", gCertificateId);
 			memcpy(certificateId, tempId, 10);
 			memcpy(gCertificateId, certificateId, 10);
 			memset(payloadBuffer, 0, sizeof(char) * pBufferLength);
@@ -812,7 +808,6 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 			if(jsonResult == JSONSuccess)
 			{
 				FILE *fp;
-                info("cert certificateId : %s\n", certificateId);
 				sprintf(certFileName, "%s/%s-certificate.pem.crt", CERTFILE_PATH, certificateId);
 				fp = fopen(certFileName, "w");
 				
@@ -832,12 +827,8 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 			if(jsonResult == JSONSuccess)
 			{
 				FILE *fp;
-                info("tempid certificateId : %s\n", tempId);
 				sprintf(privateFileName, "%s/%s-private.pem.key", CERTFILE_PATH, tempId);
-                
-                info("gcert certificateId : %s\n", gCertificateId);
 				fp = fopen(privateFileName, "w");
-
 				convertResult = JSONtoCertFile(value, valueLength, fp);
 				fclose(fp);
 			}
@@ -1135,14 +1126,9 @@ void on_message( struct mosquitto * m,
                 //mosquitto_destroy(h->m);
 
                 changeConnectionInformation(h);
-                h->connectError = 0;
-                info("reconnect port : %d\n", h->port);
-                if( (setup(h) == false) || (connect(h) == false))
-                {
-                    errx( 1, "fatal error" );
-                    set_in_progress = SET_COMPLETE;
-                    completeFlag[1] = true;
-                }
+
+                completeFlag[1] = true;
+                
             }
         }
         break;
@@ -1340,6 +1326,11 @@ int main( int argc, char * argv[] )
         }
         else if(completeFlag[1] == true)
         {
+            if( (setup(h) == false) || (connect(h) == false))
+            {
+                errx( 1, "fatal error" );
+                set_in_progress = SET_COMPLETE;
+            }
             subscribe(h, TopicFilter[OPENWORLD]);
         }
 
