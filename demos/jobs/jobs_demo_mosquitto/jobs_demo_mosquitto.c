@@ -799,8 +799,8 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
             
             info("temp certificateId : %s\n", tempId);
             info("gcert certificateId : %s\n", gCertificateId);
-			memcpy(certificateId, tempId);
-			memcpy(gCertificateId, certificateId);
+			memcpy(certificateId, tempId, 10);
+			memcpy(gCertificateId, certificateId, 10);
 			memset(payloadBuffer, 0, sizeof(char) * pBufferLength);
 			strncpy(payloadBuffer, pBuffer, sizeof(char)*pBufferLength);
 
