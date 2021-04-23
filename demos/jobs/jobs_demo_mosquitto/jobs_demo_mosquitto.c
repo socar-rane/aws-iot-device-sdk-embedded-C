@@ -402,6 +402,18 @@ uint16_t TopicFilterLength[TOPIC_LENGTH] = {
     0
 };
 
+char MqttExMessage[4][1024] = {
+	"{}",
+	"{}",
+    "{\"service_response\":\"##### RESPONSE FROM PREVIOUSLY FORBIDDEN TOPIC #####\"}",
+    "{}"
+};
+
+/**
+ * @brief Publish Payload Message Length Array
+ */ 
+uint16_t MqttExMessageLength[4] = {0, };
+
 /*-----------------------------------------------------------*/
 
 void initHandle( handle_t * p )
@@ -902,7 +914,7 @@ int main( int argc,
         errx( 1, "fatal error" );
     }
 
-    publish(h, TopicFilter[OPENWORLD], "{\"hello\" : \"World\"}");
+    publish(h, TopicFilter[PROVISIONING_CC], MqttExMessage[0]);
 
     h->lastPrompt = time( NULL );
 
