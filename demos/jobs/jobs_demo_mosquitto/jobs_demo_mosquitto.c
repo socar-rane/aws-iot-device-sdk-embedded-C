@@ -1115,6 +1115,8 @@ void on_message( struct mosquitto * m,
                 JSONStatus_t jsonResult;
                 char *value, tQuery[24] = {0,};
 
+                set_in_progress = SET_IN_PROGRESS;
+                
                 strcpy(tQuery, "thingName");
                 size_t valueLength, queryLength = strlen(tQuery);
 
@@ -1129,7 +1131,7 @@ void on_message( struct mosquitto * m,
 
                     strcpy(gClientId, value);
                 }
-
+                
                 closeConnection(h);
                 //mosquitto_destroy(h->m);
 
@@ -1343,7 +1345,7 @@ int main( int argc, char * argv[] )
             {
                 errx( 1, "fatal error" );
             }
-            set_in_progress = SET_IN_PROGRESS;
+            set_in_progress = SET_COMPLETE;
             subscribe(h, TopicFilter[OPENWORLD]);
             completeFlag[1] = false;
         }
