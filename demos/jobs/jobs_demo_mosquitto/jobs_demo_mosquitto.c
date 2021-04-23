@@ -412,6 +412,7 @@ static bool unsubscribe( handle_t *h, char *in_topic);
  */ 
 static void createUUIDStr();
 
+static bool changeConnectionInformation(handle_t *h);
 
 /**
  * @brief Log an informational message.
