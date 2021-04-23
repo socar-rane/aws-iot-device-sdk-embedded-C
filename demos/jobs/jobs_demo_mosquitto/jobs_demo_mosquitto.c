@@ -1089,7 +1089,7 @@ void on_message( struct mosquitto * m,
         
         case TEMPLATE_ACCEPT:
         {
-            ret = unsubscribeFleetTopic(h);
+            ret = unsubscribeFleetProvisioning(h);
 
             if(ret == true)
             {
