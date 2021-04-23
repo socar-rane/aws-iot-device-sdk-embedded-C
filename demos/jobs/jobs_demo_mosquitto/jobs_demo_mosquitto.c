@@ -1189,6 +1189,7 @@ static bool setup( handle_t * h )
         mosquitto_connect_callback_set( h->m, on_connect );
         mosquitto_subscribe_callback_set( h->m, on_subscribe );
         mosquitto_message_callback_set( h->m, on_message );
+        h->connectError = 0;
         ret = true;
     }
 
