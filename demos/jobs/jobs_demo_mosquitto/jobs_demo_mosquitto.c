@@ -1172,10 +1172,8 @@ void on_message( struct mosquitto * m,
                 {
                     jsonResult = JSON_Search(message->payload, message->payloadlen,
                     tQuery, queryLength, &value, &valueLength);
-
-                    info("[LOG] Client Id : %s\n", value);
-
-                    strcpy(gClientId, value);
+                    strncpy(gClientId, value, valueLength);
+                    info("[LOG] Client Id : %s\n", gClientId);
                 }
                 
                 closeConnection(h);
@@ -1361,7 +1359,7 @@ int main( int argc, char * argv[] )
 
     publish(h, TopicFilter[PROVISIONING_CC], MqttExMessage[0]);
     
-    h->lastPrompt = time( NULL );
+    //h->lastPrompt = time( NULL );
 
     while( 1 )
     {
@@ -1400,7 +1398,7 @@ int main( int argc, char * argv[] )
                 errx( 1, "mosquitto_loop: %s", mosquitto_strerror( m_ret ) );
             }
 
-            now = time( NULL );
+            //now = time( NULL );
         }
         sleep(1);
     }
