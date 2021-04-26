@@ -556,6 +556,8 @@ void initHandle( handle_t * p, uint8_t flag )
         break;
         case 2:
         {
+            h.name = gClientId;
+            h.nameLength = strlen(gClientId);
             h.host = gEndpointAddress;
             char fileName[128] = {0,};
                 h.certfile = gCertFile;
@@ -1308,16 +1310,8 @@ static bool changeConnectionInformation(handle_t *h)
 {
     char privateKeyFile[50] = {0,}, certFile[50] = {0,};
 
-    h->name = gClientId;
-    h->nameLength = strlen(gClientId);
-
     sprintf(certFile, "./%s/%s-certificate.pem.crt", CERTFILE_PATH, gCertificateId);
     sprintf(privateKeyFile, "./%s/%s-private.pem.key", CERTFILE_PATH, gCertificateId);
-
-    info("cert file : %s\n", certFile);
-    info("private file : %s\n", privateKeyFile);
-    h->certfile = certFile;
-    h->keyfile = privateKeyFile;
 }
 
 /*-----------------------------------------------------------*/
@@ -1370,7 +1364,7 @@ int main( int argc, char * argv[] )
     {
         bool ret = true;
         int m_ret;
-
+        info("main loop\n");
         if(completeFlag[0] == true)
         {
             publish(h, TopicFilter[PROVISIONING_TT], MqttExMessage[1]);
@@ -1395,6 +1389,7 @@ int main( int argc, char * argv[] )
 
         if(set_in_progress == SET_COMPLETE)
         {
+            info("mosquitto loop\n");
             m_ret = mosquitto_loop( h->m, MQTT_WAIT_TIME, 1 );
 
             if( m_ret != MOSQ_ERR_SUCCESS )
