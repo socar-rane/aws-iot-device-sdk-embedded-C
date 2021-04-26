@@ -1146,6 +1146,7 @@ void on_message( struct mosquitto * m,
                 errx(1, "Assemble certificates failed\n");
             else
             {
+                info("on message assemble certificates success\n");
                 completeFlag[0] = true;
                 set_in_progress = SET_IN_PROGRESS;
             }
@@ -1190,7 +1191,7 @@ void on_message( struct mosquitto * m,
         default:
         break;
     }
-
+    info("on_message out\n");
 }
 
 /*-----------------------------------------------------------*/
