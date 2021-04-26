@@ -512,6 +512,12 @@ uint16_t MqttExMessageLength[4] = {0, };
 /// @brief Global Certificate ID
 char gCertificateId[16] = {0,};
 
+/// @brief Global Endpoint Address
+char gEndpointAddress[64] = {0,};
+
+/// @brief Global CA Certificate File
+char gCAFileName[64] = {0,};
+
 /*-----------------------------------------------------------*/
 
 void initHandle( handle_t * p, uint8_t flag )
@@ -545,23 +551,16 @@ void initHandle( handle_t * p, uint8_t flag )
         case 2:
         {
             char fileName[128] = {0,};
-            #ifdef CLIENT_CERT_PATH
                 sprintf(fileName, "%s/%s-certificate.pem.crt", CERTFILE_PATH, gCertificateId);
                 h.certfile = fileName;
                 info("connect function cert file : %s\n", h.certfile);
-            #endif
 
-            #ifdef CLIENT_PRIVATE_KEY_PATH
                 sprintf(fileName, "%s/%s-private.pem.key", CERTFILE_PATH, gCertificateId);
                 h.keyfile = fileName;
                 info("connect function keyfile : %s\n", h.keyfile);
-            #endif
 
-            #ifdef ROOT_CA_CERT_PATH
-                h.cafile = ROOT_CA_CERT_PATH;
-            #else
-                h.capath = DEFAULT_CA_DIRECTORY;
-            #endif
+                h.cafile = "./certificates/AmazonRootCA1.crt";
+                h.capath = "./certificates";
         }
         break;
     }
@@ -680,6 +679,7 @@ static bool parseArgs( handle_t * h,
 
             case 'h':
                 h->host = optarg;
+                strcpy(gEndpointAddress, h->host);
                 break;
 
 #define optargToInt( element, min, max )                \
@@ -710,6 +710,7 @@ static bool parseArgs( handle_t * h,
             case 'f':
                 h->cafile = optarg;
                 h->capath = NULL;
+                strcpy(gCAFileName, h->cafile);
                 break;
 
             case 'd':
