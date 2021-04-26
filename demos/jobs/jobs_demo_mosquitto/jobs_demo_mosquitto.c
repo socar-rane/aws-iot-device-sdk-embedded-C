@@ -550,6 +550,7 @@ void initHandle( handle_t * p, uint8_t flag )
         break;
         case 2:
         {
+            h.host = gEndpointAddress;
             char fileName[128] = {0,};
                 sprintf(fileName, "%s/%s-certificate.pem.crt", CERTFILE_PATH, gCertificateId);
                 h.certfile = fileName;
@@ -559,8 +560,8 @@ void initHandle( handle_t * p, uint8_t flag )
                 h.keyfile = fileName;
                 info("connect function keyfile : %s\n", h.keyfile);
 
-                h.cafile = "./certificates/AmazonRootCA1.crt";
-                h.capath = "./certificates";
+                h.cafile = gCAFileName;
+                //h.capath = "./certificates";
         }
         break;
     }
