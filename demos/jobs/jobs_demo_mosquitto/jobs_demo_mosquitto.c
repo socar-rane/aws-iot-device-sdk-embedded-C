@@ -309,7 +309,7 @@ static bool publish( handle_t *h, char *in_topic, char *in_message);
  * This checks if a message corresponds to a Jobs API, and transitions
  * runtime state based on the API and current state.
  */
-void on_message( struct mosquitto * m,
+int on_message( struct mosquitto * m,
                  void * p,
                  const struct mosquitto_message * message );
 /**
@@ -1121,7 +1121,7 @@ int findTopicIndex(char *in_topic)
 
 
 
-void on_message( struct mosquitto * m,
+int on_message( struct mosquitto * m,
                  void * p,
                  const struct mosquitto_message * message )
 {
