@@ -1,34 +1,3 @@
-/*
- * AWS IoT Device SDK for Embedded C 202103.00
- * Copyright (C) 2020 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the "Software"), to deal in
- * the Software without restriction, including without limitation the rights to
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
- * the Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
-
-/*
- * This demonstration downloads files from URLs present in job documents
- * received from the AWS IoT Jobs service. It shows the use of the jobs
- * library with the Mosquitto client MQTT library for communicating with the
- * AWS IoT Jobs service.  More details are available in the usage function
- * in this file.  Note: This demo focuses on use of the jobs library;
- * a thorough explanation of libmosquitto is beyond the scope of the demo.
- */
-
 /* C standard includes. */
 #include <assert.h>
 #include <errno.h>
@@ -494,7 +463,9 @@ char queryCertificate[4][64] =
 	"certificateOwnershipToken"
 };
 
+/// @brief Provisioning complete Flag
 bool completeFlag[3] = {false, false, false};
+
 /// @brief Endpoint Device UUID
 char uuidStr[64] = {0,};
 
