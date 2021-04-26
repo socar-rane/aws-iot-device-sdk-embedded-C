@@ -821,11 +821,12 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 	char *value;
 
 	strncpy(payloadBuffer, pBuffer, pBufferLength);
-
+    info("JSON Validation\n");
 	jsonResult = JSON_Validate(pBuffer, pBufferLength);
 
 	if(jsonResult == JSONSuccess)
 	{
+        info("JSON Search 1\n");
 		jsonResult = JSON_Search(payloadBuffer, pBufferLength, queryCertificate[0], queryLength,
 			&value, &valueLength);
 		if(jsonResult == JSONSuccess)
@@ -838,6 +839,7 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 
 			// Cert Key Parsing
 			queryLength = strlen(queryCertificate[1]);
+            info("JSON Search 2\n");
 			jsonResult = JSON_Search(payloadBuffer, pBufferLength, queryCertificate[1], queryLength,
 				&value, &valueLength);
 			
@@ -855,7 +857,7 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 			{
 				errx(1, "JSON Search Error\n");
 			}
-
+            info("JPrivate Key Parsing\n");
 			// Private Key Parsing
 			queryLength = strlen(queryCertificate[2]);
 			jsonResult = JSON_Search(payloadBuffer, pBufferLength, queryCertificate[2], queryLength,
@@ -874,7 +876,7 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 			queryLength = strlen(queryCertificate[3]);
 			jsonResult = JSON_Search(payloadBuffer, pBufferLength, queryCertificate[3], queryLength,
 				&value, &valueLength);
-
+            info("certificate Ownership Parsing\n");
 			// certificate Ownership Parsing
 			if(jsonResult == JSONSuccess)
 			{
