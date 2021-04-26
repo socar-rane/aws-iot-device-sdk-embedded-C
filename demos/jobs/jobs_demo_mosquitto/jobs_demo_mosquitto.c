@@ -309,7 +309,7 @@ static bool publish( handle_t *h, char *in_topic, char *in_message);
  * This checks if a message corresponds to a Jobs API, and transitions
  * runtime state based on the API and current state.
  */
-int on_message( struct mosquitto * m,
+void on_message( struct mosquitto * m,
                  void * p,
                  const struct mosquitto_message * message );
 /**
@@ -494,7 +494,7 @@ char queryCertificate[4][64] =
 	"certificateOwnershipToken"
 };
 
-bool completeFlag[2] = {false, false};
+bool completeFlag[3] = {false, false, false};
 /// @brief Endpoint Device UUID
 char uuidStr[64] = {0,};
 
@@ -1011,8 +1011,6 @@ static void on_subscribe( struct mosquitto * m,
     assert( granted_qos != NULL );
     assert( qos_count == 1 );
 
-    info("Client Received subscription message\n");
-
     /* subscribe() is called with a single topic. */
     h->subscribeQOS = granted_qos[ 0 ];
 }
@@ -1059,9 +1057,8 @@ static bool subscribe( handle_t * h, char *in_topic)
     info("subscribe in_topic : %s\n", in_topic);
     h->subscribeQOS = -1;
     
-    //ret = mosquitto_subscribe( h->m, NULL, in_topic, MQTT_QOS );
-    ret = mosquitto_subscribe_callback(on_message, NULL, in_topic, MQTT_QOS, h->host, h->port, 
-    h->name, MQTT_KEEP_ALIVE, true, NULL, NULL, NULL, NULL);
+    ret = mosquitto_subscribe( h->m, NULL, in_topic, MQTT_QOS );
+
     /* expect the on_subscribe() callback to update h->subscribeQOS */
     for( i = 0; ( i < MAX_LOOPS ) &&
          ( ret == MOSQ_ERR_SUCCESS ) &&
@@ -1097,7 +1094,7 @@ static bool publish( handle_t *h, char *in_topic, char *in_message)
 
     if( ret != MOSQ_ERR_SUCCESS )
     {
-        warnx( "publish: %s", mosquitto_strerror( ret ) );
+        warnx( "subscribe: %s", mosquitto_strerror( ret ) );
         return false;
     }
 
@@ -1121,7 +1118,7 @@ int findTopicIndex(char *in_topic)
 
 
 
-int on_message( struct mosquitto * m,
+void on_message( struct mosquitto * m,
                  void * p,
                  const struct mosquitto_message * message )
 {
@@ -1145,8 +1142,7 @@ int on_message( struct mosquitto * m,
             else
             {
                 info("on message assemble certificates success\n");
-                completeFlag[0] = false;
-                set_in_progress = SET_IN_PROGRESS;
+                completeFlag[1] = true;
             }
         break;
         
@@ -1179,7 +1175,7 @@ int on_message( struct mosquitto * m,
                 changeConnectionInformation(h);
                 //mosquitto_destroy( h->m );
 
-                completeFlag[1] = true;
+                completeFlag[2] = true;
                 
             }
         }
@@ -1233,7 +1229,7 @@ static bool setup( handle_t * h )
         mosquitto_log_callback_set( h->m, on_log );
         mosquitto_connect_callback_set( h->m, on_connect );
         mosquitto_subscribe_callback_set( h->m, on_subscribe );
-        //mosquitto_message_callback_set( h->m, on_message );
+        mosquitto_message_callback_set( h->m, on_message );
         ret = true;
     }
 
@@ -1354,9 +1350,7 @@ int main( int argc, char * argv[] )
     {
         errx( 1, "fatal error" );
     }
-
-    
-    
+    completeFlag[0] = true;    
     //h->lastPrompt = time( NULL );
 
     while( 1 )
@@ -1364,15 +1358,18 @@ int main( int argc, char * argv[] )
         bool ret = true;
         int m_ret;
         info("main loop\n");
-        if(completeFlag[0] == false)
+        if(completeFlag[0] == true)
         {
             publish(h, TopicFilter[PROVISIONING_CC], MqttExMessage[0]);
-            sleep(1);
+            completeFlag[0] = false;
+        }
+        if(completeFlag[1] == true)
+        {
             publish(h, TopicFilter[PROVISIONING_TT], MqttExMessage[1]);
-            completeFlag[0] = true;
+            completeFlag[1] = false;
         }
 
-        else if(completeFlag[1] == true)
+        else if(completeFlag[2] == true)
         {
             bool ret[2];
             h->name = gClientId;
@@ -1385,10 +1382,9 @@ int main( int argc, char * argv[] )
             }
             set_in_progress = SET_COMPLETE;
             subscribe(h, TopicFilter[OPENWORLD]);
-            completeFlag[1] = false;
+            completeFlag[2] = false;
         }
 
-        if(set_in_progress == SET_COMPLETE)
         {
             info("mosquitto loop\n");
             m_ret = mosquitto_loop( h->m, MQTT_WAIT_TIME, 1 );
@@ -1400,7 +1396,6 @@ int main( int argc, char * argv[] )
 
             //now = time( NULL );
         }
-        sleep(1);
     }
 
     exit( EXIT_SUCCESS );
