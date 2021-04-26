@@ -518,6 +518,12 @@ char gEndpointAddress[64] = {0,};
 /// @brief Global CA Certificate File
 char gCAFileName[64] = {0,};
 
+/// @brief Global Certificate File
+char gCertFile[64] = {0,};
+
+/// @brief Global Private Key File
+char gPrivateKey[64] = {0,};
+
 /*-----------------------------------------------------------*/
 
 void initHandle( handle_t * p, uint8_t flag )
@@ -552,12 +558,10 @@ void initHandle( handle_t * p, uint8_t flag )
         {
             h.host = gEndpointAddress;
             char fileName[128] = {0,};
-                sprintf(fileName, "%s/%s-certificate.pem.crt", CERTFILE_PATH, gCertificateId);
-                h.certfile = fileName;
+                h.certfile = gCertFile;
                 info("connect function cert file : %s\n", h.certfile);
 
-                sprintf(fileName, "%s/%s-private.pem.key", CERTFILE_PATH, gCertificateId);
-                h.keyfile = fileName;
+                h.keyfile = gPrivateKey;
                 info("connect function keyfile : %s\n", h.keyfile);
 
                 h.cafile = gCAFileName;
@@ -839,7 +843,8 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 			{
 				FILE *fp;
 				sprintf(certFileName, "%s/%s-certificate.pem.crt", CERTFILE_PATH, certificateId);
-				fp = fopen(certFileName, "w");
+				strcpy(gCertFile, certFileName);
+                fp = fopen(certFileName, "w");
 				
 				convertResult = JSONtoCertFile(value, valueLength, fp);
 				fclose(fp);
@@ -858,6 +863,7 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 			{
 				FILE *fp;
 				sprintf(privateFileName, "%s/%s-private.pem.key", CERTFILE_PATH, tempId);
+                strcpy(gPrivateKey, privateFileName);
 				fp = fopen(privateFileName, "w");
 				convertResult = JSONtoCertFile(value, valueLength, fp);
 				fclose(fp);
