@@ -207,7 +207,7 @@ typedef struct
  *
  * @param[in] p runtime state handle
  */
-void initHandle( handle_t * p );
+void initHandle( handle_t * p, uint8_t flag );
 
 /**
  * @brief Validate the values within a handle.
@@ -514,7 +514,7 @@ char gCertificateId[16] = {0,};
 
 /*-----------------------------------------------------------*/
 
-void initHandle( handle_t * p )
+void initHandle( handle_t * p, uint8_t flag )
 {
     assert( p != NULL );
 
@@ -524,19 +524,44 @@ void initHandle( handle_t * p )
         h.host = AWS_IOT_ENDPOINT;
     #endif
 
-    #ifdef CLIENT_CERT_PATH
-        h.certfile = CLIENT_CERT_PATH;
-    #endif
+    switch(flag)
+    {
+        case 1:
+            #ifdef CLIENT_CERT_PATH
+                h.certfile = CLIENT_CERT_PATH;
+            #endif
 
-    #ifdef CLIENT_PRIVATE_KEY_PATH
-        h.keyfile = CLIENT_PRIVATE_KEY_PATH;
-    #endif
+            #ifdef CLIENT_PRIVATE_KEY_PATH
+                h.keyfile = CLIENT_PRIVATE_KEY_PATH;
+            #endif
 
-    #ifdef ROOT_CA_CERT_PATH
-        h.cafile = ROOT_CA_CERT_PATH;
-    #else
-        h.capath = DEFAULT_CA_DIRECTORY;
-    #endif
+            #ifdef ROOT_CA_CERT_PATH
+                h.cafile = ROOT_CA_CERT_PATH;
+            #else
+                h.capath = DEFAULT_CA_DIRECTORY;
+            #endif
+        break;
+        case 2:
+        {
+            char fileName[128] = {0,};
+            #ifdef CLIENT_CERT_PATH
+                sprintf(fileName, "%s/%s-certificate.pem.crt", CERTFILE_PATH, gCertificateId);
+                h.certfile = fileName;
+            #endif
+
+            #ifdef CLIENT_PRIVATE_KEY_PATH
+                sprintf(fileName, "%s/%s-private.pem.key", CERTFILE_PATH, gCertificateId);
+                h.keyfile = fileName;
+            #endif
+
+            #ifdef ROOT_CA_CERT_PATH
+                h.cafile = ROOT_CA_CERT_PATH;
+            #else
+                h.capath = DEFAULT_CA_DIRECTORY;
+            #endif
+        }
+        break;
+    }
 
     h.port = DEFAULT_MQTT_PORT;
 
@@ -1302,7 +1327,7 @@ int main( int argc, char * argv[] )
     time_t now;
 
     createUUIDStr();
-    initHandle( h );
+    initHandle( h, 1 );
 
     if( parseArgs( h, argc, argv ) == false )
     {
@@ -1338,6 +1363,8 @@ int main( int argc, char * argv[] )
 
         else if(completeFlag[1] == true)
         {
+            h->name = gClientId;
+            initHandle(h, 2);
             if( (setup(h) == false) || (connect(h) == false))
             {
                 errx( 1, "fatal error" );
