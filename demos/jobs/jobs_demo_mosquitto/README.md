@@ -1,3 +1,220 @@
+# AWS IoT Fleet Provisioning Source code using Mosquitto library
+
+## Overview
+
+기존의 AWS IoT Device SDK는 cmake 기반으로 만들어져있어 크로스 컴파일링이 번거롭습니다.
+따라서 크로스 컴파일도 쉬우면서 Mosquitto 라이브러리를 사용하는 Fleet Provisioning 코드를 만들었습니다.
+라이브러리는 간단하게 libmosquitto와 coreJSON 라이브러리를 사용하여 구현했습니다. 
+
+## Mosquitto 라이브러리 설치하기
+
+```sh
+sudo apt-get install -y curl libmosquitto-dev
+```
+
+## coreJSON 라이브러리 컴파일하기
+
+```sh
+
+# Workspace 디렉토리 생성 후 진입
+mkdir ~/Workspace
+
+cd ~/Workspace
+
+# 소스코드 git clone 
+git clone -b sub_master https://github.com/socar-rane/aws-iot-device-sdk-embedded-C.git --recurse-submodules
+
+# coreJSON 라이브러리 경로 진입
+cd aws-iot-device-sdk-embedded-C/libraries/standard/coreJSON
+
+# gcc를 사용하여 컴파일
+gcc -I source/include -c source/core_json.c
+
+# libcore_json.so 정적 라이브러리 생성
+ar rc libcore_json.so core_json.o
+```
+
+## Fleet Provisioning 소스코드 컴파일하기
+
+```sh
+# aws 디렉토리 진입
+cd ~/Workspace/aws-iot-device-sdk-embedded-C/
+
+# provisioning 디렉토리 진입 
+cd demos/jobs/jobs_demo_mosquitto
+
+# /usr/lib/arm-linux-gnueabihf는 라즈베리파이 환경 기준 mosquitto 라이브러리 경로입니다.
+# 다른 환경에서 사용할 경우 mosquitto 라이브러리 경로를 입력하시면 됩니다.
+gcc jobs_demo_mosquitto.c -L ~/Workspace/aws-iot-device-sdk-embedded-C/libraries/ -lcore_json -L/usr/lib/arm-linux-gnueabihf/ -lmosquitto -o provisioning
+
+./provisioning <options>
+```
+
+## Fleet Provisioning 실행방법
+
+```sh
+./provisioning -n <Client ID> -h <Endpoint Address> --cafile <AmazonRootCA1.crt 파일 경로> --certfile <Certificate 파일 경로> --keyfile <Private 인증서 파일 경로>
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
 This demonstration downloads files from URLs received via AWS IoT Jobs.
 Details are available in the usage function at the top of jobs_demo.c.
 
