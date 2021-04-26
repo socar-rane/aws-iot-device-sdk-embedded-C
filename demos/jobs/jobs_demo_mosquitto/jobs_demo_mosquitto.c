@@ -757,7 +757,7 @@ static bool parseArgs( handle_t * h,
 static bool registerThing(char *token, size_t tokenLength)
 {
 	JSONStatus_t jsonResult;
-
+    info("registerThing called\n");
 	char parseToken[1024] = {0,};
 	strncpy(parseToken, token, sizeof(char)*tokenLength);
 	sprintf(MqttExMessage[1], "{\"certificateOwnershipToken\":\"%s\",\"parameters\":{\"SerialNumber\":\"%s\"}}",parseToken, uuidStr);
@@ -884,7 +884,10 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
                     return false;
                 }
                 else
+                {
+                    info("assemble certificates complete!\n");
                     return true;
+                }
 			}
 		}
 		else
