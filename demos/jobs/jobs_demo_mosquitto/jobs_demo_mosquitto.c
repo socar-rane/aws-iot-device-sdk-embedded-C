@@ -1011,6 +1011,8 @@ static void on_subscribe( struct mosquitto * m,
     assert( granted_qos != NULL );
     assert( qos_count == 1 );
 
+    info("Client Received subscription message\n");
+
     /* subscribe() is called with a single topic. */
     h->subscribeQOS = granted_qos[ 0 ];
 }
@@ -1364,6 +1366,7 @@ int main( int argc, char * argv[] )
         if(completeFlag[0] == false)
         {
             publish(h, TopicFilter[PROVISIONING_CC], MqttExMessage[0]);
+            sleep(1);
             publish(h, TopicFilter[PROVISIONING_TT], MqttExMessage[1]);
             completeFlag[0] = true;
         }
