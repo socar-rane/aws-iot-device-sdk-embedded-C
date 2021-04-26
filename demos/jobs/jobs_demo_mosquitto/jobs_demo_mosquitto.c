@@ -516,8 +516,9 @@ char gCertificateId[16] = {0,};
 
 void initHandle( handle_t * p, uint8_t flag )
 {
+    info("initHandle\n");
     assert( p != NULL );
-
+    info("initHandle start\n");
     handle_t h = { 0 };
 
     #ifdef AWS_IOT_ENDPOINT
@@ -1038,6 +1039,7 @@ static bool subscribe( handle_t * h, char *in_topic)
     assert( MQTT_QOS <= 2 );
 
     /* set to default value */
+    info("subscribe in_topic : %s\n", in_topic);
     h->subscribeQOS = -1;
     
     ret = mosquitto_subscribe( h->m, NULL, in_topic, MQTT_QOS );
