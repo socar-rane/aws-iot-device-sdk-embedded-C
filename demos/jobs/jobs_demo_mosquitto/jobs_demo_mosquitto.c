@@ -1147,7 +1147,7 @@ void on_message( struct mosquitto * m,
             else
             {
                 info("on message assemble certificates success\n");
-                completeFlag[0] = true;
+                completeFlag[0] = false;
                 set_in_progress = SET_IN_PROGRESS;
             }
         break;
@@ -1357,7 +1357,7 @@ int main( int argc, char * argv[] )
         errx( 1, "fatal error" );
     }
 
-    publish(h, TopicFilter[PROVISIONING_CC], MqttExMessage[0]);
+    
     
     //h->lastPrompt = time( NULL );
 
@@ -1366,10 +1366,11 @@ int main( int argc, char * argv[] )
         bool ret = true;
         int m_ret;
         info("main loop\n");
-        if(completeFlag[0] == true)
+        if(completeFlag[0] == false)
         {
+            publish(h, TopicFilter[PROVISIONING_CC], MqttExMessage[0]);
             publish(h, TopicFilter[PROVISIONING_TT], MqttExMessage[1]);
-            completeFlag[0] = false;
+            completeFlag[0] = true;
         }
 
         else if(completeFlag[1] == true)
