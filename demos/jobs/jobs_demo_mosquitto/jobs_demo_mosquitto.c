@@ -547,11 +547,13 @@ void initHandle( handle_t * p, uint8_t flag )
             #ifdef CLIENT_CERT_PATH
                 sprintf(fileName, "%s/%s-certificate.pem.crt", CERTFILE_PATH, gCertificateId);
                 h.certfile = fileName;
+                info("connect function cert file : %s\n", h.certfile);
             #endif
 
             #ifdef CLIENT_PRIVATE_KEY_PATH
                 sprintf(fileName, "%s/%s-private.pem.key", CERTFILE_PATH, gCertificateId);
                 h.keyfile = fileName;
+                info("connect function keyfile : %s\n", h.keyfile);
             #endif
 
             #ifdef ROOT_CA_CERT_PATH
@@ -941,8 +943,6 @@ static bool connect( handle_t * h )
         info( "Connecting to %s, port %d.", h->host, h->port );
         ret = mosquitto_connect( h->m, h->host, h->port, MQTT_KEEP_ALIVE );
     }
-
-    info("ret : %s\n", mosquitto_strerror(ret));
 
     /* expect the on_connect() callback to update h->connectError */
     for( i = 0; ( i < MAX_LOOPS ) &&
@@ -1363,9 +1363,12 @@ int main( int argc, char * argv[] )
 
         else if(completeFlag[1] == true)
         {
+            bool ret[2];
             h->name = gClientId;
             initHandle(h, 2);
-            if( (setup(h) == false) || (connect(h) == false))
+            ret[0] = setup(h);
+            ret[1] = connect(h);
+            if( ret[0] == false || ret[1] == false )
             {
                 errx( 1, "fatal error" );
             }
