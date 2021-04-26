@@ -1091,15 +1091,10 @@ static bool publish( handle_t *h, char *in_topic, char *in_message)
 
     info("publish message : %s\n", in_message);
     ret = mosquitto_publish(h->m, NULL, in_topic, strlen(in_message), in_message, MQTT_QOS, 0);
-    
-    for(i = 0 ; (i < MAX_LOOPS) && (ret == MOSQ_ERR_SUCCESS) ; i++)
-    {
-        ret = mosquitto_loop( h->m, MQTT_SHORT_WAIT_TIME, 1 );
-    }
 
     if( ret != MOSQ_ERR_SUCCESS )
     {
-        warnx( "subscribe: %s", mosquitto_strerror( ret ) );
+        warnx( "publish: %s", mosquitto_strerror( ret ) );
         return false;
     }
 
