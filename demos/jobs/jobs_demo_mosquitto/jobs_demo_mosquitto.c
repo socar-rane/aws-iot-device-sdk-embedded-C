@@ -1142,7 +1142,8 @@ void on_message( struct mosquitto * m,
                 errx(1, "Assemble certificates failed\n");
             else
             {
-                publish(h, TopicFilter[PROVISIONING_TT], MqttExMessage[1]);
+                completeFlag[0] = true;
+                set_in_progress = SET_IN_PROGRESS;
             }
         break;
         
@@ -1370,7 +1371,13 @@ int main( int argc, char * argv[] )
         bool ret = true;
         int m_ret;
 
-        if(completeFlag[1] == true)
+        if(completeFlag[0] == true)
+        {
+            publish(h, TopicFilter[PROVISIONING_TT], MqttExMessage[1]);
+            completeFlag[0] = false;
+        }
+
+        else if(completeFlag[1] == true)
         {
             bool ret[2];
             h->name = gClientId;
