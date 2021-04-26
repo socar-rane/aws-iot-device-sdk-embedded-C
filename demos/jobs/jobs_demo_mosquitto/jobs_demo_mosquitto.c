@@ -1059,8 +1059,9 @@ static bool subscribe( handle_t * h, char *in_topic)
     info("subscribe in_topic : %s\n", in_topic);
     h->subscribeQOS = -1;
     
-    ret = mosquitto_subscribe( h->m, NULL, in_topic, MQTT_QOS );
-
+    //ret = mosquitto_subscribe( h->m, NULL, in_topic, MQTT_QOS );
+    ret = mosquitto_subscribe_callback(on_message, NULL, in_topic, MQTT_QOS, h->host, h->port, 
+    h->name, MQTT_KEEP_ALIVE, true, NULL, NULL, NULL, NULL);
     /* expect the on_subscribe() callback to update h->subscribeQOS */
     for( i = 0; ( i < MAX_LOOPS ) &&
          ( ret == MOSQ_ERR_SUCCESS ) &&
