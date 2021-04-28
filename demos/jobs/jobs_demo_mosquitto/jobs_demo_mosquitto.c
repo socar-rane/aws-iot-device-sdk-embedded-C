@@ -479,9 +479,7 @@ uint8_t gMode = 0, gLcount = 0, gLFlag = 1;
 
 void initHandle( handle_t * p, uint8_t flag )
 {
-    info("initHandle\n");
     assert( p != NULL );
-    info("initHandle start\n");
     handle_t h = { 0 };
 
     #ifdef AWS_IOT_ENDPOINT
@@ -510,14 +508,9 @@ void initHandle( handle_t * p, uint8_t flag )
             h.name = gClientId;
             h.nameLength = strlen(gClientId);
             h.host = gEndpointAddress;
-            char fileName[128] = {0,};
-                h.certfile = gCertFile;
-                info("connect function cert file : %s\n", h.certfile);
-
-                h.keyfile = gPrivateKey;
-                info("connect function keyfile : %s\n", h.keyfile);
-
-                h.cafile = gCAFileName;
+            h.certfile = gCertFile;
+            h.keyfile = gPrivateKey;
+            h.cafile = gCAFileName;
                 //h.capath = "./certificates";
         }
         break;
@@ -745,7 +738,6 @@ static bool parseArgs( handle_t * h,
 static bool registerThing(char *token, size_t tokenLength)
 {
 	JSONStatus_t jsonResult;
-    info("registerThing called\n");
 	char parseToken[1024] = {0,};
 	strncpy(parseToken, token, sizeof(char)*tokenLength);
 	sprintf(MqttExMessage[1], "{\"certificateOwnershipToken\":\"%s\",\"parameters\":{\"SerialNumber\":\"%s\"}}",parseToken, uuidStr);
@@ -807,12 +799,10 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 	char *value;
 
 	strncpy(payloadBuffer, pBuffer, pBufferLength);
-    info("JSON Validation\n");
 	jsonResult = JSON_Validate(pBuffer, pBufferLength);
 
 	if(jsonResult == JSONSuccess)
 	{
-        info("JSON Search 1\n");
 		jsonResult = JSON_Search(payloadBuffer, pBufferLength, queryCertificate[0], queryLength,
 			&value, &valueLength);
 		if(jsonResult == JSONSuccess)
@@ -825,7 +815,6 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 
 			// Cert Key Parsing
 			queryLength = strlen(queryCertificate[1]);
-            info("JSON Search 2\n");
 			jsonResult = JSON_Search(payloadBuffer, pBufferLength, queryCertificate[1], queryLength,
 				&value, &valueLength);
 			
@@ -843,7 +832,6 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 			{
 				errx(1, "JSON Search Error\n");
 			}
-            info("JPrivate Key Parsing\n");
 			// Private Key Parsing
 			queryLength = strlen(queryCertificate[2]);
 			jsonResult = JSON_Search(payloadBuffer, pBufferLength, queryCertificate[2], queryLength,
@@ -862,7 +850,6 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 			queryLength = strlen(queryCertificate[3]);
 			jsonResult = JSON_Search(payloadBuffer, pBufferLength, queryCertificate[3], queryLength,
 				&value, &valueLength);
-            info("certificate Ownership Parsing\n");
 			// certificate Ownership Parsing
 			if(jsonResult == JSONSuccess)
 			{
@@ -875,7 +862,6 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
                 }
                 else
                 {
-                    info("assemble certificates complete!\n");
                     return true;
                 }
 			}
@@ -915,12 +901,6 @@ static bool connect( handle_t * h )
 
     assert( h != NULL );
     assert( h->m != NULL );
-
-    info("cafile : %s\n", h->cafile);
-    info("capath : %s\n", h->capath);
-    info("certfile : %s\n", h->certfile);
-    info("keyfile : %s\n", h->keyfile);
-
     assert( h->connectError == -1 );
 
     if( h->port == 443 )
@@ -1038,7 +1018,6 @@ static bool subscribe( handle_t * h, char *in_topic)
     assert( MQTT_QOS <= 2 );
 
     /* set to default value */
-    info("subscribe in_topic : %s\n", in_topic);
     h->subscribeQOS = -1;
     
     ret = mosquitto_subscribe( h->m, NULL, in_topic, MQTT_QOS );
@@ -1073,7 +1052,6 @@ static bool publish( handle_t *h, char *in_topic, char *in_message)
     assert( h != NULL);
     assert( MQTT_QOS <= 2 );
 
-    info("publish message : %s\n", in_message);
     ret = mosquitto_publish(h->m, NULL, in_topic, strlen(in_message), in_message, MQTT_QOS, 0);
 
     if( ret != MOSQ_ERR_SUCCESS )
@@ -1114,8 +1092,6 @@ void on_message( struct mosquitto * m,
 
     int index = findTopicIndex(message->topic);
 
-    info("on_message topic : %s / on message : %s / index : %d\n", message->topic, message->payload, index);
-
     switch(index)
     {
         case CERTIFICATE_ACCEPT:
@@ -1151,7 +1127,6 @@ void on_message( struct mosquitto * m,
                     jsonResult = JSON_Search(message->payload, message->payloadlen,
                     tQuery, queryLength, &value, &valueLength);
                     strncpy(gClientId, value, valueLength);
-                    info("[LOG] Client Id : %s\n", gClientId);
                 }
                 
                 closeConnection(h);
@@ -1167,7 +1142,6 @@ void on_message( struct mosquitto * m,
         default:
         break;
     }
-    info("on_message out\n");
 }
 
 /*-----------------------------------------------------------*/
@@ -1395,10 +1369,7 @@ int main( int argc, char * argv[] )
                 }
             break; 
         }
-        
-
         {
-            info("mosquitto loop\n");
             m_ret = mosquitto_loop( h->m, MQTT_WAIT_TIME, 1 );
 
             if( m_ret != MOSQ_ERR_SUCCESS )
