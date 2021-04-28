@@ -1336,6 +1336,15 @@ int main( int argc, char * argv[] )
     if(gMode == MODE_SUBSCRIBE)
         subscribe(h, TopicFilter[USER_PUBSUB]);
 
+    else if(gMode == MODE_FLEET_PROV)
+    {
+        if( subscribeFleetProvisioning(h) == false )
+                {
+                    errx( 1, "fatal error" );
+                }
+                completeFlag[0] = true; 
+    }
+
     while(gLFlag)
     {
         bool ret = true;
@@ -1358,12 +1367,6 @@ int main( int argc, char * argv[] )
                 }
             break;
             case MODE_FLEET_PROV:
-                if( subscribeFleetProvisioning(h) == false )
-                {
-                    errx( 1, "fatal error" );
-                }
-                completeFlag[0] = true; 
-
                 if(completeFlag[0] == true)
                 {
                     publish(h, TopicFilter[PROVISIONING_CC], MqttExMessage[0]);
