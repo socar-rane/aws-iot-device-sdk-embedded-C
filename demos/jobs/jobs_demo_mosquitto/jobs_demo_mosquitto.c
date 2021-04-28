@@ -58,46 +58,15 @@
  */
 static void usage( const char * programName )
 {
-    fprintf( stderr,
-             "\nThis demonstration downloads files from URLs received via AWS IoT Jobs.\n"
-             "(See https://docs.aws.amazon.com/iot/latest/developerguide/iot-jobs.html for an introduction.)\n"
-             "\nCreating a job may be done with the AWS console, or the aws cli, e.g.,\n"
-             "$ aws iot create-job --job-id t12 --targets arn:aws:iot:us-east-1:1234567890:thing/device1 \\\n"
-             "  --document '{\"url\":\"https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.8.5.tar.xz\"}'\n"
-             "\nTo execute the job, on the target device run the demo program with the device's credentials, e.g.,\n"
-             "$ %s -n device1 -h abcdefg123.iot.us-east-1.amazonaws.com \\\n"
-             "  --certfile bbaf123456-certificate.pem.crt --keyfile bbaf123456-private.pem.key\n"
-             "\nTo exit the program, type Control-C, or send a SIGTERM signal.\n",
-             programName );
-    fprintf( stderr,
-             "\nOutput should look like the following:\n"
-             "Connecting to abcdefg123.iot.us-east-1.amazonaws.com, port 8883.\n"
-             "Client device1 sending CONNECT\n"
-             "Client device1 received CONNACK\n"
-             "Client device1 sending SUBSCRIBE (Mid: 1, Topic: $aws/things/device1/jobs/start-next/accepted, QoS: 1)\n"
-             "Client device1 received SUBACK\n"
-             "[...]\n"
-             "starting job id: t12\n"
-             "sending first update\n" );
-    fprintf( stderr,
-             "\nIf the output does not show a successful connection, check in the AWS console\n"
-             "that the client certificate is associated with the target thing and is activated.\n"
-             "Also check that the Amazon Root CA certificates are in your system's trust store.\n"
-             "Note, you can provide a CA certificate file directly as a command-line argument.\n" );
-    fprintf( stderr,
-             "\nThis demonstration exits on most error conditions.  One way to retry while avoiding\n"
-             "throttling due to excessive reconnects is to periodically relaunch from cron(8).\n"
-             "Given a shell script wrapper with the necessary arguments called download, the following\n"
-             "line in /etc/crontab would start the downloader unless it is already running.\n"
-             "This tries every 3 minutes, with an additional random delay up to 2 minutes.\n\n"
-             "*/3 * * * *  root  exec 9> /tmp/lock && flock -n 9 && sleep $((RANDOM %% 120)) && download\n"
-             );
+
     fprintf( stderr,
              "\nusage: %s "
              "[-o] -n name -h host [-p port] {--cafile file | --capath dir} --certfile file --keyfile file [--pollinv seconds] [--updateinv seconds]\n"
              "\n"
              "-o : run once, exit after the first job is finished.\n"
              "-n : thing name\n"
+             "-m : select mode. 1: Publish / 2: Subscribe / 3: Fleet Provisioning\n"
+             "-l : Loop count. 0 : Forever / not 0 : Loop count"
              "-h : mqtt host to connect to.\n"
              "-p : network port to connect to. Defaults to %d.\n",
              programName, DEFAULT_MQTT_PORT );
@@ -417,6 +386,13 @@ enum
     RESERVED                // Reserved
 };
 
+enum
+{
+    MODE_PUBLISH = 1,
+    MODE_SUBSCRIBE,
+    MODE_FLEET_PROV
+};
+
 /**
  * @brief Initialize Topic name
  */
@@ -495,6 +471,8 @@ char gCertFile[64] = {0,};
 /// @brief Global Private Key File
 char gPrivateKey[64] = {0,};
 
+/// @brief Active Mode
+uint8_t gMode = 0, gLcount = 0, gLFlag = 1;
 /*-----------------------------------------------------------*/
 
 void initHandle( handle_t * p, uint8_t flag )
@@ -629,14 +607,18 @@ static bool parseArgs( handle_t * h,
             { "cafile",    required_argument, NULL, 'f' },
             { "capath",    required_argument, NULL, 'd' },
             { "certfile",  required_argument, NULL, 'c' },
+            { "loop",      required_argument, NULL, 'l' },
             { "keyfile",   required_argument, NULL, 'k' },
+            { "topic",     required_argument, NULL, 't' },
+            { "message",   required_argument, NULL, 'M' },
             { "pollinv",   required_argument, NULL, 'P' },
             { "updateinv", required_argument, NULL, 'u' },
             { "help",      no_argument,       NULL, '?' },
+            { "mode",      required_argument, NULL, 'm' },
             { NULL,        0,                 NULL, 0   }
         };
 
-        c = getopt_long( argc, argv, "on:h:p:P:u:f:d:c:k:?",
+        c = getopt_long( argc, argv, "on:h:p:P:u:f:d:c:k:m:M:t:l:?",
                          long_options, &option_index );
 
         if( c == -1 )
@@ -689,6 +671,24 @@ static bool parseArgs( handle_t * h,
                 h->cafile = optarg;
                 h->capath = NULL;
                 strcpy(gCAFileName, h->cafile);
+                break;
+                
+            case 'm':
+                gMode = atoi(optarg);
+                break;
+
+            case 'M':
+                strcpy(MqttExMessage[3], optarg);
+                MqttExMessageLength[3] = strlen(MqttExMessage[3]);
+                break;
+
+            case 'l':
+                gLcount = atoi(optarg);
+                break;
+
+            case 't':
+                strcpy(TopicFilter[USER_PUBSUB], optarg);
+                TopicFilterLength[USER_PUBSUB] = strlen(TopicFilter[USER_PUBSUB]);
                 break;
 
             case 'd':
@@ -1301,6 +1301,7 @@ int main( int argc, char * argv[] )
 {
     handle_t h_, * h = &h_;
     time_t now;
+    int i = 0;
 
     createUUIDStr();
     initHandle( h, 1 );
@@ -1316,45 +1317,80 @@ int main( int argc, char * argv[] )
     {
         errx( 1, "fatal error" );
     }
-
-    if( subscribeFleetProvisioning(h) == false )
-    {
-        errx( 1, "fatal error" );
-    }
-    completeFlag[0] = true;    
+       
     //h->lastPrompt = time( NULL );
 
-    while( 1 )
+    while(gLFlag)
     {
         bool ret = true;
         int m_ret;
-        info("main loop\n");
-        if(completeFlag[0] == true)
-        {
-            publish(h, TopicFilter[PROVISIONING_CC], MqttExMessage[0]);
-            completeFlag[0] = false;
-        }
-        if(completeFlag[1] == true)
-        {
-            publish(h, TopicFilter[PROVISIONING_TT], MqttExMessage[1]);
-            completeFlag[1] = false;
-        }
 
-        else if(completeFlag[2] == true)
+        switch(gMode)
         {
-            bool ret[2];
-            h->name = gClientId;
-            initHandle(h, 2);
-            ret[0] = setup(h);
-            ret[1] = connect(h);
-            if( ret[0] == false || ret[1] == false )
-            {
-                errx( 1, "fatal error" );
-            }
-            set_in_progress = SET_COMPLETE;
-            subscribe(h, TopicFilter[OPENWORLD]);
-            completeFlag[2] = false;
+            case MODE_PUBLISH:
+                if(!gLcount)
+                    publish(h, TopicFilter[USER_PUBSUB], MqttExMessage[3]);
+                else
+                {
+                    if(i == gLcount)
+                    {
+                        gLFlag = 0;
+                        break;
+                    }
+                    publish(h, TopicFilter[USER_PUBSUB], MqttExMessage[3]);
+                    i++;
+                }
+            break;
+            case MODE_SUBSCRIBE:
+                if(!gLcount)
+                    subscribe(h, TopicFilter[USER_PUBSUB]);
+                else
+                {
+                    if(i == gLcount)
+                    {
+                        gLFlag = 0;
+                        break;
+                    }
+                    subscribe(h, TopicFilter[USER_PUBSUB]);
+                    i++;
+                }
+            break;
+            case MODE_FLEET_PROV:
+                if( subscribeFleetProvisioning(h) == false )
+                {
+                    errx( 1, "fatal error" );
+                }
+                completeFlag[0] = true; 
+
+                if(completeFlag[0] == true)
+                {
+                    publish(h, TopicFilter[PROVISIONING_CC], MqttExMessage[0]);
+                    completeFlag[0] = false;
+                }
+                if(completeFlag[1] == true)
+                {
+                    publish(h, TopicFilter[PROVISIONING_TT], MqttExMessage[1]);
+                    completeFlag[1] = false;
+                }
+
+                else if(completeFlag[2] == true)
+                {
+                    bool ret[2];
+                    h->name = gClientId;
+                    initHandle(h, 2);
+                    ret[0] = setup(h);
+                    ret[1] = connect(h);
+                    if( ret[0] == false || ret[1] == false )
+                    {
+                        errx( 1, "fatal error" );
+                    }
+                    set_in_progress = SET_COMPLETE;
+                    subscribe(h, TopicFilter[OPENWORLD]);
+                    completeFlag[2] = false;
+                }
+            break; 
         }
+        
 
         {
             info("mosquitto loop\n");
