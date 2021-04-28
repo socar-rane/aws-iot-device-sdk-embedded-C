@@ -66,7 +66,9 @@ static void usage( const char * programName )
              "-o : run once, exit after the first job is finished.\n"
              "-n : thing name\n"
              "-m : select mode. 1: Publish / 2: Subscribe / 3: Fleet Provisioning\n"
-             "-l : Loop count. 0 : Forever / not 0 : Loop count"
+             "-M : Publish Message.\n"
+             "-t : Publish / Subscribe Topic\n"
+             "-l : Loop count. 0 : Forever / not 0 : Loop count\n"
              "-h : mqtt host to connect to.\n"
              "-p : network port to connect to. Defaults to %d.\n",
              programName, DEFAULT_MQTT_PORT );
@@ -548,7 +550,7 @@ static bool requiredArgs( handle_t * h )
         ret = false;                                   \
         warnx( "%s argument must not be empty", # x ); \
     }
-
+    
     checkString( name );
     checkString( host );
     checkString( certfile );
@@ -674,6 +676,8 @@ static bool parseArgs( handle_t * h,
                 break;
                 
             case 'm':
+                if(optarg == NULL)
+                    exit(1);
                 gMode = atoi(optarg);
                 break;
 
@@ -683,10 +687,14 @@ static bool parseArgs( handle_t * h,
                 break;
 
             case 'l':
+                if(optarg == NULL)
+                    exit(1);
                 gLcount = atoi(optarg);
                 break;
 
             case 't':
+                if(optarg == NULL)
+                    exit(1);
                 strcpy(TopicFilter[USER_PUBSUB], optarg);
                 TopicFilterLength[USER_PUBSUB] = strlen(TopicFilter[USER_PUBSUB]);
                 break;
@@ -719,6 +727,13 @@ static bool parseArgs( handle_t * h,
     if( ret == true )
     {
         ret = requiredArgs( h );
+        if(gMode != 3)
+        {
+            if(TopicFilter[USER_PUBSUB] == NULL || strlen(TopicFilter[USER_PUBSUB]) == 0)
+                ret = false;
+        }
+        else if(gMode == 0)
+            ret = false;
     }
 
     return ret;
