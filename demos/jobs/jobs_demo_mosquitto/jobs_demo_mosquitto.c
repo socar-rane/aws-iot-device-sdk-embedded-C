@@ -1092,6 +1092,8 @@ void on_message( struct mosquitto * m,
 
     int index = findTopicIndex(message->topic);
 
+    info("on topic : %s / on message : %s\n", message->topic, message->payload);
+
     switch(index)
     {
         case CERTIFICATE_ACCEPT:
@@ -1101,7 +1103,6 @@ void on_message( struct mosquitto * m,
                 errx(1, "Assemble certificates failed\n");
             else
             {
-                info("on message assemble certificates success\n");
                 completeFlag[1] = true;
             }
         break;
