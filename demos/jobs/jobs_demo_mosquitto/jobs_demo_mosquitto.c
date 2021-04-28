@@ -732,7 +732,7 @@ static bool parseArgs( handle_t * h,
             if(TopicFilter[USER_PUBSUB] == NULL || strlen(TopicFilter[USER_PUBSUB]) == 0)
                 ret = false;
         }
-        else if(gMode == 0)
+        if(gMode == 0)
             ret = false;
     }
 
@@ -902,8 +902,6 @@ static void on_connect( struct mosquitto * m,
     handle_t * h = p;
 
     assert( h != NULL );
-
-    info("connection error : %d\n", h->connectError);
 
     h->connectError = rc;
 }
@@ -1418,6 +1416,7 @@ int main( int argc, char * argv[] )
 
             //now = time( NULL );
         }
+        sleep(1);
     }
 
     exit( EXIT_SUCCESS );
