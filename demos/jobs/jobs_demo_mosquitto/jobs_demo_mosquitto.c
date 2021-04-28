@@ -1333,6 +1333,9 @@ int main( int argc, char * argv[] )
        
     //h->lastPrompt = time( NULL );
 
+    if(gMode == MODE_SUBSCRIBE)
+        subscribe(h, TopicFilter[USER_PUBSUB]);
+
     while(gLFlag)
     {
         bool ret = true;
@@ -1353,9 +1356,6 @@ int main( int argc, char * argv[] )
                     publish(h, TopicFilter[USER_PUBSUB], MqttExMessage[3]);
                     i++;
                 }
-            break;
-            case MODE_SUBSCRIBE:
-                    subscribe(h, TopicFilter[USER_PUBSUB]);
             break;
             case MODE_FLEET_PROV:
                 if( subscribeFleetProvisioning(h) == false )
