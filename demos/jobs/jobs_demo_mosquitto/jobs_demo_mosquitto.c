@@ -1348,25 +1348,14 @@ int main( int argc, char * argv[] )
                     if(i == gLcount)
                     {
                         gLFlag = 0;
-                        break;
+                        exit(1);
                     }
                     publish(h, TopicFilter[USER_PUBSUB], MqttExMessage[3]);
                     i++;
                 }
             break;
             case MODE_SUBSCRIBE:
-                if(!gLcount)
                     subscribe(h, TopicFilter[USER_PUBSUB]);
-                else
-                {
-                    if(i == gLcount)
-                    {
-                        gLFlag = 0;
-                        break;
-                    }
-                    subscribe(h, TopicFilter[USER_PUBSUB]);
-                    i++;
-                }
             break;
             case MODE_FLEET_PROV:
                 if( subscribeFleetProvisioning(h) == false )
