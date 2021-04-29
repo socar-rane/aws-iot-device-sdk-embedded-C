@@ -1140,6 +1140,10 @@ void on_message( struct mosquitto * m,
             }
         }
         break;
+        case CERTIFICATE_REJECT:
+        break;
+        case TEMPLATE_REJECT:
+        break;
         default:
         break;
     }
