@@ -43,9 +43,12 @@ cd ~/Workspace/aws-iot-device-sdk-embedded-C/
 # provisioning 디렉토리 진입 
 cd demos/jobs/jobs_demo_mosquitto
 
+# core_json 헤더파일 복사
+cp ../../../libraries/standard/coreJSON/source/include/core_json.h .
+
 # /usr/lib/arm-linux-gnueabihf는 라즈베리파이 환경 기준 mosquitto 라이브러리 경로입니다.
 # 다른 환경에서 사용할 경우 mosquitto 라이브러리 경로를 입력하시면 됩니다.
-gcc jobs_demo_mosquitto.c -L ~/Workspace/aws-iot-device-sdk-embedded-C/libraries/ -lcore_json -L/usr/lib/arm-linux-gnueabihf/ -lmosquitto -o provisioning
+gcc jobs_demo_mosquitto.c -L ~/Workspace/aws-iot-device-sdk-embedded-C/libraries/standard/coreJSON -lcore_json -L/usr/lib/arm-linux-gnueabihf/ -lmosquitto -o provisioning
 
 ./provisioning <options>
 ```
@@ -53,9 +56,36 @@ gcc jobs_demo_mosquitto.c -L ~/Workspace/aws-iot-device-sdk-embedded-C/libraries
 ## Fleet Provisioning 실행방법
 
 ```sh
-./provisioning -n <Client ID> -h <Endpoint Address> --cafile <AmazonRootCA1.crt 파일 경로> --certfile <Certificate 파일 경로> --keyfile <Private 인증서 파일 경로>
+./provisioning -n <Client ID> -h <Endpoint Address> --cafile <AmazonRootCA1.crt 파일 경로> --certfile <Certificate 파일 경로> --keyfile <Private 인증서 파일 경로> -m 3
+
+옵션 설명
+
+-n / --name     : 클라이언트 ID 
+-h / --host     : Endpoint Address
+-p / --port     : MQTT Port
+-f / --cafile   : AmazonRootCA1.crt 파일 경로 (파일명 포함)
+-k / --keyfile  : Private Key 파일 경로 (파일명 포함)
+-t / --topic    : Publish / Subscribe 할 Topic 문자열
+-M / --message  : Publish Payload 메시지 문자열
+-m / --mode     : <1 : Publish / 2 : Subscribe / 3 : Fleet Provisioning>
+-l / --loop     : Publish 메시지를 전송할 횟수 (0 : Forever / not 0 : Loop count)
+
 ```
 
+## Publish / Subscribe 전송방법
+
+```sh
+# Publish Forever
+./provisioning -n <Client ID> -h <Endpoint Address> --cafile <AmazonRootCA1.crt 파일 경로> --certfile <Certificate 파일 경로> --keyfile <Private 인증서 파일 경로> -m 1 -M <Publish Payload Message> -t <Publish Topic> -l 0
+
+# Publish 5 Times
+./provisioning -n <Client ID> -h <Endpoint Address> --cafile <AmazonRootCA1.crt 파일 경로> --certfile <Certificate 파일 경로> --keyfile <Private 인증서 파일 경로> -m 1 -M <Publish Payload Message> -t <Publish Topic> -l 5
+
+# Subscribe and wait message
+
+# Publish 5 Times
+./provisioning -n <Client ID> -h <Endpoint Address> --cafile <AmazonRootCA1.crt 파일 경로> --certfile <Certificate 파일 경로> --keyfile <Private 인증서 파일 경로> -m 2 -M -t <Subscribe Topic>
+```
 
 
 
