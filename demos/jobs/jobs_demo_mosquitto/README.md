@@ -25,6 +25,11 @@ git clone -b sub_master https://github.com/socar-rane/aws-iot-device-sdk-embedde
 # 프로젝트 경로 진입
 cd aws-iot-device-sdk-embedded-C/
 
+# 프로비저닝 템플릿 이름 변경
+vi demos/jobs/jobs_demo_mosquitto/demo_config.h
+#define PRODUCTION_TEMPLATE "INSERT YOUR TEMPLATE NAME"
+#<INSERT YOUR TEMPLATE NAME>을 프로비저닝 템플릿 이름으로 변경해주세요!
+
 # Cmake Build 디렉토리 생성
 mkdir build
 
