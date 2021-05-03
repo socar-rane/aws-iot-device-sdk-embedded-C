@@ -620,8 +620,10 @@ static bool parseArgs( handle_t * h,
 
             case 'c':
                 strcpy(gCertificateId, optarg);
-                sprintf(h->certfile, CERTFILE_PREFIX, gCertificateId);
-                sprintf(h->keyfile, KEYFILE_PREFIX, gCertificateId);
+                sprintf(gCertFile, CERTFILE_PREFIX, gCertificateId);
+                sprintf(gPrivateKey, KEYFILE_PREFIX, gCertificateId);
+                h->certfile = gCertFile;
+                h->keyfile = gPrivateKey;
                 break;
 
             case 'd':
