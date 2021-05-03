@@ -61,31 +61,24 @@ static void usage( const char * programName )
 
     fprintf( stderr,
              "\nusage: %s "
-             "[-o] -n name -h host [-p port] {--cafile file | --capath dir} --certfile file --keyfile file [--pollinv seconds] [--updateinv seconds]\n"
+             "-h <endpoint> [-p port] -c <cert id> -n <client id> -d <cert dir> -m <mode> [-l loop <Publish only>]\n"
              "\n"
-             "-o : run once, exit after the first job is finished.\n"
-             "-n : thing name\n"
+             "-n : Client ID\n"
              "-m : select mode. 1: Publish / 2: Subscribe / 3: Fleet Provisioning\n"
              "-M : Publish Message.\n"
              "-t : Publish / Subscribe Topic\n"
-             "-l : Loop count. 0 : Forever / not 0 : Loop count\n"
-             "-h : mqtt host to connect to.\n"
+             "-l : Loop count. 0 : Forever / not 0 : Loop count <Publish only>\n"
+             "-h : mqtt endpoint Address\n"
              "-p : network port to connect to. Defaults to %d.\n",
              programName, DEFAULT_MQTT_PORT );
     fprintf( stderr,
              "--cafile    : path to a file containing trusted CA certificates to enable encrypted\n"
              "              certificate based communication.\n"
-             "--capath    : path to a directory containing trusted CA certificates to enable encrypted\n"
+             "--path    : path to a directory containing trusted CA certificates to enable encrypted\n"
              "              communication.  Defaults to %s.\n"
              "--certfile  : client certificate for authentication in PEM format.\n"
              "--keyfile   : client private key for authentication in PEM format.\n",
              DEFAULT_CA_DIRECTORY );
-    fprintf( stderr,
-             "--pollinv   : after this many idle seconds, request a job.\n"
-             "              Without this option and a positive value, no polling is done.\n"
-             "--updateinv : after this many seconds running a job, resend the current status to the jobs service.\n"
-             "              Without this option and a positive value, status is not resent.\n\n"
-             );
 }
 
 /*-----------------------------------------------------------*/
@@ -393,7 +386,8 @@ enum
 {
     MODE_PUBLISH = 1,
     MODE_SUBSCRIBE,
-    MODE_FLEET_PROV
+    MODE_FLEET_PROV,
+    MODE_UPDOWN_STREAM
 };
 
 /**
@@ -475,6 +469,9 @@ char gCertFile[64] = {0,};
 
 /// @brief Global Private Key File
 char gPrivateKey[64] = {0,};
+
+/// @brief Global MDN Number
+char gMDNNumber[13] = {0,};
 
 /// @brief Active Mode
 uint8_t gMode = 0, gLcount = 0, gLFlag = 1;
@@ -559,11 +556,9 @@ static bool requiredArgs( handle_t * h )
         warn( "cannot access '%s'", h->x );                                       \
         h->x = NULL;                                                              \
     }
-
+    checkPath( cafile );
     checkPath( certfile );
     checkPath( keyfile );
-    checkPath( cafile );
-
     checkPath( capath );
 
     /* use value in struct stat s from last check */
@@ -598,25 +593,21 @@ static bool parseArgs( handle_t * h,
         long x;
         static struct option long_options[] =
         {
-            { "once",      no_argument,       NULL, 'o' },
-            { "name",      required_argument, NULL, 'n' },
+            { "certid",    required_argument, NULL, 'c' },
+            { "path",      required_argument, NULL, 'd' },
             { "host",      required_argument, NULL, 'h' },
-            { "port",      required_argument, NULL, 'p' },
-            { "cafile",    required_argument, NULL, 'f' },
-            { "capath",    required_argument, NULL, 'd' },
-            { "certfile",  required_argument, NULL, 'c' },
             { "loop",      required_argument, NULL, 'l' },
-            { "keyfile",   required_argument, NULL, 'k' },
-            { "topic",     required_argument, NULL, 't' },
-            { "message",   required_argument, NULL, 'M' },
-            { "pollinv",   required_argument, NULL, 'P' },
-            { "updateinv", required_argument, NULL, 'u' },
-            { "help",      no_argument,       NULL, '?' },
             { "mode",      required_argument, NULL, 'm' },
+            { "message",   required_argument, NULL, 'M' },
+            { "name",      required_argument, NULL, 'n' },
+            { "mdn",       required_argument, NULL, 'N' },
+            { "port",      required_argument, NULL, 'p' },
+            { "topic",     required_argument, NULL, 't' },
+            { "help",      no_argument,       NULL, '?' },
             { NULL,        0,                 NULL, 0   }
         };
 
-        c = getopt_long( argc, argv, "on:h:p:P:u:f:d:c:k:m:M:t:l:?",
+        c = getopt_long( argc, argv, "c:d:h:n:l:p:m:n:M:N:p:t:?",
                          long_options, &option_index );
 
         if( c == -1 )
@@ -626,60 +617,23 @@ static bool parseArgs( handle_t * h,
 
         switch( c )
         {
-            case 'o':
-                h->runOnce = true;
+
+            case 'c':
+                strcpy(gCertificateId, optarg);
+                sprintf(h->certfile, CERTFILE_PREFIX, gCertificateId);
+                sprintf(h->keyfile, KEYFILE_PREFIX, gCertificateId);
                 break;
 
-            case 'n':
-                h->name = optarg;
-                h->nameLength = strlen( optarg );
+            case 'd':
+                h->capath = optarg;
+                sprintf(gCertFile, "%s/%s", h->capath, h->certfile);
+                sprintf(gPrivateKey, "%s/%s", h->capath, h->keyfile);
+                sprintf(h->cafile, "%s/AmazonRootCA1.crt", h->capath);
                 break;
 
             case 'h':
                 h->host = optarg;
                 strcpy(gEndpointAddress, h->host);
-                break;
-
-#define optargToInt( element, min, max )                \
-    x = strtol( optarg, NULL, 0 );                      \
-                                                        \
-    if( ( x > min ) && ( x <= max ) )                   \
-    {                                                   \
-        h->element = x;                                 \
-    }                                                   \
-    else                                                \
-    {                                                   \
-        ret = false;                                    \
-        warnx( "bad %s value: %s", # element, optarg ); \
-    }
-
-            case 'p':
-                optargToInt( port, 0, 0xFFFF );
-                break;
-
-            case 'P':
-                optargToInt( pollinv, 0, INTERVAL_MAX );
-                break;
-
-            case 'u':
-                optargToInt( updateinv, 0, INTERVAL_MAX );
-                break;
-
-            case 'f':
-                h->cafile = optarg;
-                h->capath = NULL;
-                strcpy(gCAFileName, h->cafile);
-                break;
-                
-            case 'm':
-                if(optarg == NULL)
-                    exit(1);
-                gMode = atoi(optarg);
-                break;
-
-            case 'M':
-                strcpy(MqttExMessage[3], optarg);
-                MqttExMessageLength[3] = strlen(MqttExMessage[3]);
                 break;
 
             case 'l':
@@ -688,24 +642,32 @@ static bool parseArgs( handle_t * h,
                 gLcount = atoi(optarg);
                 break;
 
+            case 'm':
+                if(optarg == NULL)
+                    exit(1);
+                gMode = atoi(optarg);
+                break;
+
+            case 'n':
+                h->name = optarg;
+                h->nameLength = strlen( optarg );
+                break;
+
+            case 'M':
+                strcpy(MqttExMessage[3], optarg);
+                MqttExMessageLength[3] = strlen(MqttExMessage[3]);
+                break;
+
+            case 'N':
+                strcpy(gMDNNumber, optarg);
+                break;
+
             case 't':
                 if(optarg == NULL)
                     exit(1);
                 strcpy(TopicFilter[USER_PUBSUB], optarg);
                 TopicFilterLength[USER_PUBSUB] = strlen(TopicFilter[USER_PUBSUB]);
-                break;
-
-            case 'd':
-                h->capath = optarg;
-                break;
-
-            case 'c':
-                h->certfile = optarg;
-                break;
-
-            case 'k':
-                h->keyfile = optarg;
-                break;
+                break;            
 
             case '?':
             default:
@@ -723,7 +685,7 @@ static bool parseArgs( handle_t * h,
     if( ret == true )
     {
         ret = requiredArgs( h );
-        if(gMode != 3)
+        if(gMode == 1 || gMode == 2)
         {
             if(TopicFilter[USER_PUBSUB] == NULL || strlen(TopicFilter[USER_PUBSUB]) == 0)
                 ret = false;
@@ -743,7 +705,7 @@ static bool registerThing(char *token, size_t tokenLength)
 	JSONStatus_t jsonResult;
 	char parseToken[1024] = {0,};
 	strncpy(parseToken, token, sizeof(char)*tokenLength);
-	sprintf(MqttExMessage[1], "{\"certificateOwnershipToken\":\"%s\",\"parameters\":{\"SerialNumber\":\"%s\"}}",parseToken, uuidStr);
+	sprintf(MqttExMessage[1], "{\"certificateOwnershipToken\":\"%s\",\"parameters\":{\"SerialNumber\":\"%s\"}}",parseToken, gMDNNumber);
 	MqttExMessageLength[1] = strlen(MqttExMessage[1]);
 
 	jsonResult = JSON_Validate(MqttExMessage[1], MqttExMessageLength[1]);
@@ -825,7 +787,8 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 			{
 				FILE *fp;
 				sprintf(certFileName, "%s/%s-certificate.pem.crt", CERTFILE_PATH, certificateId);
-				strcpy(gCertFile, certFileName);
+				memset(gCertFile, 0, sizeof(gCertFile));
+                strcpy(gCertFile, certFileName);
                 fp = fopen(certFileName, "w");
 				
 				convertResult = JSONtoCertFile(value, valueLength, fp);
@@ -844,6 +807,7 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 			{
 				FILE *fp;
 				sprintf(privateFileName, "%s/%s-private.pem.key", CERTFILE_PATH, tempId);
+                memset(gPrivateKey, 0, sizeof(gPrivateKey));
                 strcpy(gPrivateKey, privateFileName);
 				fp = fopen(privateFileName, "w");
 				convertResult = JSONtoCertFile(value, valueLength, fp);
@@ -1024,7 +988,7 @@ static bool subscribe( handle_t * h, char *in_topic)
     h->subscribeQOS = -1;
     
     ret = mosquitto_subscribe( h->m, NULL, in_topic, MQTT_QOS );
-
+    info( "subscribe: %s", mosquitto_strerror( ret ) );
     /* expect the on_subscribe() callback to update h->subscribeQOS */
     for( i = 0; ( i < MAX_LOOPS ) &&
          ( ret == MOSQ_ERR_SUCCESS ) &&
@@ -1329,6 +1293,10 @@ int main( int argc, char * argv[] )
                 }
                 completeFlag[0] = true; 
     }
+    else if(gMode == MODE_UPDOWN_STREAM)
+    {
+
+    }
 
     while(gLFlag)
     {
@@ -1366,7 +1334,6 @@ int main( int argc, char * argv[] )
                 else if(completeFlag[2] == true)
                 {
                     bool ret[2];
-                    h->name = gClientId;
                     initHandle(h, 2);
                     ret[0] = setup(h);
                     ret[1] = connect(h);
