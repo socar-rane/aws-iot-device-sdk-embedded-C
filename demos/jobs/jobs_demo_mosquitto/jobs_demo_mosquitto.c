@@ -365,7 +365,7 @@ static bool changeConnectionInformation(handle_t *h);
  * @param[in] x one of "IN_PROGRESS", "SUCCEEDED", or "FAILED"
  */
 #define makeReport_( x )    "{\"status\":\"" x "\"}"
-#define TOPIC_LENGTH		8
+#define TOPIC_LENGTH		9
 
 // Topic Identifier
 enum
@@ -377,7 +377,8 @@ enum
 	OPENWORLD,              // Create New Session Example Topic
 	PROVISIONING_CC,        // Provisioning Create Certificate Topic
 	PROVISIONING_TT,         // Provisioning Template Topic
-    USER_PUBSUB
+    USER_PUBSUB,
+    DOWNSTREAM
 };
 
 enum
@@ -407,6 +408,7 @@ char TopicFilter[TOPIC_LENGTH][256] = {
 	"openworld",
 	PROVISIONING_CERT_CREATE_TOPIC,
 	PROVISIONING_TEMPLATE_TOPIC,
+    "",
     ""
 };
 
@@ -422,6 +424,7 @@ uint16_t TopicFilterLength[TOPIC_LENGTH] = {
 	sizeof("openworld")-1,
 	PROVISIONING_CC_LENGTH,
 	PROVISIONING_TT_LENGTH,
+    0,
     0
 };
 
@@ -1144,7 +1147,7 @@ void on_message( struct mosquitto * m,
         break;
         case TEMPLATE_REJECT:
         break;
-        case DEVICE_DOWNSTREAM_TOPIC:
+        case DOWNSTREAM:
             info("Downstream Message!\n");
         break;  
         default:
@@ -1363,7 +1366,6 @@ int main( int argc, char * argv[] )
                 else if(completeFlag[2] == true)
                 {
                     bool ret[2];
-                    char tempTopic[128] = {0,};
                     h->name = gClientId;
                     initHandle(h, 2);
                     ret[0] = setup(h);
@@ -1374,14 +1376,10 @@ int main( int argc, char * argv[] )
                     }
                     set_in_progress = SET_COMPLETE;
                     //subscribe(h, TopicFilter[OPENWORLD]);
-                    sprintf(tempTopic, DEVICE_DOWNSTREAM_TOPIC, gClientId);
-                    subscribe(h, tempTopic);
+                    sprintf(TopicFilter[DOWNSTREAM], DEVICE_DOWNSTREAM_TOPIC, gClientId);
+                    TopicFilterLength[DOWNSTREAM] = strlen(TopicFilter[DOWNSTREAM]);
+                    subscribe(h, TopicFilter[DOWNSTREAM]);
                     completeFlag[2] = false;
-                    completeFlag[3] = true;
-                }
-                else if(completeFlag[3] == true)
-                {
-                    
                 }
             break; 
         }
