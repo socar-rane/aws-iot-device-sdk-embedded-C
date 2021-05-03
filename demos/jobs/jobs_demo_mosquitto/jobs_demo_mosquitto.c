@@ -601,13 +601,12 @@ static bool parseArgs( handle_t * h,
             { "message",   required_argument, NULL, 'M' },
             { "name",      required_argument, NULL, 'n' },
             { "mdn",       required_argument, NULL, 'N' },
-            { "port",      required_argument, NULL, 'p' },
             { "topic",     required_argument, NULL, 't' },
             { "help",      no_argument,       NULL, '?' },
             { NULL,        0,                 NULL, 0   }
         };
 
-        c = getopt_long( argc, argv, "c:d:h:n:l:p:m:n:M:N:p:t:?",
+        c = getopt_long( argc, argv, "c:d:h:n:l:m:n:M:N:t:?",
                          long_options, &option_index );
 
         if( c == -1 )
@@ -628,9 +627,11 @@ static bool parseArgs( handle_t * h,
 
             case 'd':
                 h->capath = optarg;
+                char tempPath[128] = {0,};
                 sprintf(gCertFile, "%s/%s", h->capath, h->certfile);
                 sprintf(gPrivateKey, "%s/%s", h->capath, h->keyfile);
-                sprintf(h->cafile, "%s/AmazonRootCA1.crt", h->capath);
+                sprintf(tempPath, "%s/AmazonRootCA1.crt", h->capath);
+                h->cafile = tempPath;
                 break;
 
             case 'h':
