@@ -63,6 +63,7 @@ static void usage( const char * programName )
              "\nusage: %s "
              "-h <endpoint> [-p port] -c <cert id> -n <client id> -d <cert dir> -m <mode> [-l loop <Publish only>]\n"
              "\n"
+             "-f : Fleet Provisioning Template Name"
              "-n : Client ID\n"
              "-m : select mode. 1: Publish / 2: Subscribe / 3: Fleet Provisioning\n"
              "-M : Publish Message.\n"
@@ -505,8 +506,8 @@ void initHandle( handle_t * p, uint8_t flag )
         break;
         case 2:
         {
-            h.name = gClientId;
-            h.nameLength = strlen(gClientId);
+            h.name = gMDNNumber;
+            h.nameLength = strlen(gMDNNumber);
             h.host = gEndpointAddress;
             h.certfile = gCertFile;
             h.keyfile = gPrivateKey;
@@ -595,6 +596,7 @@ static bool parseArgs( handle_t * h,
         {
             { "certid",    required_argument, NULL, 'c' },
             { "path",      required_argument, NULL, 'd' },
+            { "fleet",     required_argument, NULL, 'f' },
             { "host",      required_argument, NULL, 'h' },
             { "loop",      required_argument, NULL, 'l' },
             { "mode",      required_argument, NULL, 'm' },
@@ -637,7 +639,9 @@ static bool parseArgs( handle_t * h,
                 h->cafile = gCAFileName;
             }
                 break;
+            case 'f':
 
+            break;
             case 'h':
                 h->host = optarg;
                 strcpy(gEndpointAddress, h->host);
