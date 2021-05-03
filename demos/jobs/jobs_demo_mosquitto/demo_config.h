@@ -85,7 +85,10 @@
 #define PROVISIONING_TEMPLATE_TOPIC PRE_TEMPLATE_PATH "/provision/json"
 
 #define DEVICE_UPSTREAM_TOPIC "$aws/rules/rane_report/%s/report"
-#define DEVICE_DOWNSTREAM_TOPIC "$aws/rules/rane_control/%s/control"
+#define DEVICE_DOWNSTREAM_TOPIC "rane_control/%s/control"
+
+#define CERTFILE_PREFIX "%s-certificate.pem.crt"
+#define KEYFILE_PREFIX "%s-private.pem.key"
 
 #define TEMPLATE_ACC_LENGTH ((uint16_t) (sizeof(TEMPLATE_ACCEPT_TOPIC) - 1))
 #define TEMPLATE_RJT_LENGTH ((uint16_t) (sizeof(TEMPLATE_REJECT_TOPIC) - 1))
