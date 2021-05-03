@@ -632,9 +632,9 @@ static bool parseArgs( handle_t * h,
                 sprintf(gPrivateKey, "%s/%s", h->capath, tempPath[1]);
                 sprintf(tempPath[2], "%s/AmazonRootCA1.crt", h->capath);
                 sprintf(gCAFileName, tempPath[2]);
-                h->certfile = tempPath[0];
-                h->keyfile = tempPath[1];
-                h->cafile = tempPath[2];
+                h->certfile = gCertFile;
+                h->keyfile = gPrivateKey;
+                h->cafile = gCAFileName;
             }
                 break;
 
