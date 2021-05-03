@@ -84,6 +84,9 @@
 #define PROVISIONING_CERT_CREATE_TOPIC "$aws/certificates/create/json"
 #define PROVISIONING_TEMPLATE_TOPIC PRE_TEMPLATE_PATH "/provision/json"
 
+#define DEVICE_UPSTREAM_TOPIC "$aws/rules/sts/%s/report"
+#define DEVICE_DOWNSTREAM_TOPIC "$aws/rules/sts/%s/control"
+
 #define TEMPLATE_ACC_LENGTH ((uint16_t) (sizeof(TEMPLATE_ACCEPT_TOPIC) - 1))
 #define TEMPLATE_RJT_LENGTH ((uint16_t) (sizeof(TEMPLATE_REJECT_TOPIC) - 1))
 #define CERTIFICATE_ACC_LENGTH ((uint16_t) (sizeof(CERTIFICATE_ACCEPT_TOPIC) - 1))
