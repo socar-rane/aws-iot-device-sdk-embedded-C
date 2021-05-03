@@ -578,7 +578,7 @@ static bool parseArgs( handle_t * h,
                        char * argv[] )
 {
     bool ret = true;
-
+    char tempPath[3][128] = {0,};
     assert( h != NULL );
 
     if( argc == 1 )
@@ -618,20 +618,24 @@ static bool parseArgs( handle_t * h,
         {
 
             case 'c':
+            {
                 strcpy(gCertificateId, optarg);
-                sprintf(gCertFile, CERTFILE_PREFIX, gCertificateId);
-                sprintf(gPrivateKey, KEYFILE_PREFIX, gCertificateId);
-                h->certfile = gCertFile;
-                h->keyfile = gPrivateKey;
+                sprintf(tempPath[0], CERTFILE_PREFIX, gCertificateId);
+                sprintf(tempPath[1], KEYFILE_PREFIX, gCertificateId);
+            }   
                 break;
 
             case 'd':
+            {
                 h->capath = optarg;
-                char tempPath[128] = {0,};
-                sprintf(gCertFile, "%s/%s", h->capath, h->certfile);
-                sprintf(gPrivateKey, "%s/%s", h->capath, h->keyfile);
-                sprintf(tempPath, "%s/AmazonRootCA1.crt", h->capath);
-                h->cafile = tempPath;
+                sprintf(gCertFile, "%s/%s", h->capath, tempPath[0]);
+                sprintf(gPrivateKey, "%s/%s", h->capath, tempPath[1]);
+                sprintf(tempPath[2], "%s/AmazonRootCA1.crt", h->capath);
+                sprintf(gCAFileName, tempPath[2]);
+                h->certfile = tempPath[0];
+                h->keyfile = tempPath[1];
+                h->cafile = tempPath[2];
+            }
                 break;
 
             case 'h':
