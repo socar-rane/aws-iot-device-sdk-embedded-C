@@ -1144,6 +1144,9 @@ void on_message( struct mosquitto * m,
         break;
         case TEMPLATE_REJECT:
         break;
+        case DEVICE_DOWNSTREAM_TOPIC:
+            info("Downstream Message!\n");
+        break;  
         default:
         break;
     }
@@ -1360,6 +1363,7 @@ int main( int argc, char * argv[] )
                 else if(completeFlag[2] == true)
                 {
                     bool ret[2];
+                    char tempTopic[128] = {0,};
                     h->name = gClientId;
                     initHandle(h, 2);
                     ret[0] = setup(h);
@@ -1369,8 +1373,15 @@ int main( int argc, char * argv[] )
                         errx( 1, "fatal error" );
                     }
                     set_in_progress = SET_COMPLETE;
-                    subscribe(h, TopicFilter[OPENWORLD]);
+                    //subscribe(h, TopicFilter[OPENWORLD]);
+                    sprintf(tempTopic, DEVICE_DOWNSTREAM_TOPIC, gClientId);
+                    subscribe(h, tempTopic);
                     completeFlag[2] = false;
+                    completeFlag[3] = true;
+                }
+                else if(completeFlag[3] == true)
+                {
+                    
                 }
             break; 
         }
