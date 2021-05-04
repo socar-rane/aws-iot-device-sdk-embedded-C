@@ -54,41 +54,33 @@ cp <Claim 인증서 경로> ~/Workspace/aws-iot-device-sdk-embedded-C/build/bin/
 ## Fleet Provisioning 실행방법
 
 ```sh
-./jobs_demo_mosquitto -n <Client ID> -h <Endpoint Address> --cafile <AmazonRootCA1.crt 파일 경로> --certfile <Certificate 파일 경로> --keyfile <Private 인증서 파일 경로> -m 3
+./jobs_demo_mosquitto 
 
 옵션 설명
 
--n / --name     : 클라이언트 ID 
+-c / --cert     : Certificate ID
+-d / --path     : 인증서가 저장된 Path (Ex: ./certificates)
+-f / --fleet    : Fleet Provisioning Template Name
 -h / --host     : Endpoint Address
--p / --port     : MQTT Port
--f / --cafile   : AmazonRootCA1.crt 파일 경로 (파일명 포함)
--k / --keyfile  : Private Key 파일 경로 (파일명 포함)
--t / --topic    : Publish / Subscribe 할 Topic 문자열
--M / --message  : Publish Payload 메시지 문자열
--m / --mode     : <1 : Publish / 2 : Subscribe / 3 : Fleet Provisioning>
 -l / --loop     : Publish 메시지를 전송할 횟수 (0 : Forever / not 0 : Loop count)
+-m / --mode     : <1 : Publish / 2 : Subscribe / 3 : Fleet Provisioning>
+-M / --message  : Publish Payload 메시지 문자열
+-n / --name     : 클라이언트 ID 
+-N / --mdn      : MDN 번호
+-t / --topic    : Publish / Subscribe 할 Topic 문자열
+
+1. Publish 방법
+
+./jobs_demo_mosquitto -c <Certificate ID> -d <인증서 경로> -h <Endpoint Address> -m 1 -M "{\"test\":\"publish\"}" -n "sts-<mdn number>" -t <Publish Topic> -l <loop count>
+
+2. Subscribe 방법
+
+./jobs_demo_mosquitto -c <Certificate ID> -d <인증서 경로> -h <Endpoint Address> -m 2 -n "sts-<mdn number>" -t <Subscribe Topic> 
+
+3. Fleet Provisioning 방법
+
+./jobs_demo_mosquitto -c <Certificate ID> -d <인증서 경로> -h <Endpoint Address> -m 3 -n <Client ID> -f <Provisioning Template Name> -N <MDN Number>
 ```
-
-
-## Publish / Subscribe 전송방법
-
-```sh
-# Publish Forever
-./jobs_demo_mosquitto -n <Client ID> -h <Endpoint Address> --cafile <AmazonRootCA1.crt 파일 경로> --certfile <Certificate 파일 경로> --keyfile <Private 인증서 파일 경로> -m 1 -M <Publish Payload Message> -t <Publish Topic> -l 0
-
-# Publish 5 Times
-./jobs_demo_mosquitto -n <Client ID> -h <Endpoint Address> --cafile <AmazonRootCA1.crt 파일 경로> --certfile <Certificate 파일 경로> --keyfile <Private 인증서 파일 경로> -m 1 -M <Publish Payload Message> -t <Publish Topic> -l 5
-
-# Subscribe and wait message
-
-# Publish 5 Times
-./jobs_demo_mosquitto -n <Client ID> -h <Endpoint Address> --cafile <AmazonRootCA1.crt 파일 경로> --certfile <Certificate 파일 경로> --keyfile <Private 인증서 파일 경로> -m 2 -M -t <Subscribe Topic>
-```
-
-
-
-
-
 
 # ------- 아래 문서는 잠시 보류합니다!!! ----------
 
