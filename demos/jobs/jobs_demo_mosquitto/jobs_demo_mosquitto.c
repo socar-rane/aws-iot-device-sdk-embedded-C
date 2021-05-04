@@ -67,6 +67,7 @@ static void usage( const char * programName )
              "-n : Client ID\n"
              "-m : select mode. 1: Publish / 2: Subscribe / 3: Fleet Provisioning\n"
              "-M : Publish Message.\n"
+             "-N : MDN Number\n"
              "-t : Publish / Subscribe Topic\n"
              "-l : Loop count. 0 : Forever / not 0 : Loop count <Publish only>\n"
              "-h : mqtt endpoint Address\n"
@@ -506,8 +507,8 @@ void initHandle( handle_t * p, uint8_t flag )
         break;
         case 2:
         {
-            h.name = gMDNNumber;
-            h.nameLength = strlen(gMDNNumber);
+            h.name = gClientId;
+            h.nameLength = strlen(gClientId);
             h.host = gEndpointAddress;
             h.certfile = gCertFile;
             h.keyfile = gPrivateKey;
