@@ -396,33 +396,13 @@ enum
  * @brief Initialize Topic name
  */
 
-char TopicFilter[TOPIC_LENGTH][256] = {
-	TEMPLATE_REJECT_TOPIC,
-	CERTIFICATE_REJECT_TOPIC,
-	TEMPLATE_ACCEPT_TOPIC,
-	CERTIFICATE_ACCEPT_TOPIC,
-	"openworld",
-	PROVISIONING_CERT_CREATE_TOPIC,
-	PROVISIONING_TEMPLATE_TOPIC,
-    "",
-    ""
-};
+char TopicFilter[TOPIC_LENGTH][256] = {0, };
 
 /**
  * @brief Initialize Topic name length
  */
 
-uint16_t TopicFilterLength[TOPIC_LENGTH] = {
-	TEMPLATE_RJT_LENGTH,
-	CERTIFICATE_RJT_LENGTH,
-	TEMPLATE_ACC_LENGTH,
-	CERTIFICATE_RJT_LENGTH,
-	sizeof("openworld")-1,
-	PROVISIONING_CC_LENGTH,
-	PROVISIONING_TT_LENGTH,
-    0,
-    0
-};
+uint16_t TopicFilterLength[TOPIC_LENGTH] = {0,};
 
 char MqttExMessage[4][1024] = {
 	"{}",
@@ -478,6 +458,23 @@ char gMDNNumber[13] = {0,};
 /// @brief Active Mode
 uint8_t gMode = 0, gLcount = 0, gLFlag = 1;
 /*-----------------------------------------------------------*/
+
+void initTopicFilter(char *t_name)
+{
+    sprintf(TopicFilter[TEMPLATE_REJECT], TEMPLATE_REJECT_TOPIC, t_name);
+    sprintf(TopicFilter[CERTIFICATE_REJECT], CERTIFICATE_REJECT_TOPIC, t_name);
+    sprintf(TopicFilter[TEMPLATE_ACCEPT], TEMPLATE_ACCEPT_TOPIC, t_name);
+    sprintf(TopicFilter[CERTIFICATE_ACCEPT], CERTIFICATE_ACCEPT_TOPIC, t_name);
+    sprintf(TopicFilter[PROVISIONING_TT], PROVISIONING_TEMPLATE_TOPIC, t_name);
+    strcpy(TopicFilter[PROVISIONING_CC], PROVISIONING_CERT_CREATE_TOPIC);
+    
+    TopicFilterLength[TEMPLATE_REJECT] = strlen(TopicFilter[TEMPLATE_REJECT]);
+    TopicFilterLength[CERTIFICATE_REJECT] = strlen(TopicFilter[CERTIFICATE_REJECT]);
+    TopicFilterLength[TEMPLATE_ACCEPT] = strlen(TopicFilter[TEMPLATE_ACCEPT]);
+    TopicFilterLength[CERTIFICATE_ACCEPT] = strlen(TopicFilter[CERTIFICATE_ACCEPT]);
+    TopicFilterLength[PROVISIONING_TT] = strlen(TopicFilter[PROVISIONING_TT]);
+    TopicFilterLength[PROVISIONING_CC] = strlen(TopicFilter[PROVISIONING_CC]);
+}
 
 void initHandle( handle_t * p, uint8_t flag )
 {
@@ -641,7 +638,11 @@ static bool parseArgs( handle_t * h,
             }
                 break;
             case 'f':
-
+            {
+                char templateName[30] = {0,};
+                strcpy(templateName, optarg);
+                initTopicFilter(templateName);
+            }
             break;
             case 'h':
                 h->host = optarg;
