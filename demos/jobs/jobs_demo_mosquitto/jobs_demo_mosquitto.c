@@ -718,7 +718,7 @@ static bool registerThing(char *token, size_t tokenLength)
 	JSONStatus_t jsonResult;
 	char parseToken[1024] = {0,};
 	strncpy(parseToken, token, sizeof(char)*tokenLength);
-	sprintf(MqttExMessage[1], "{\"certificateOwnershipToken\":\"%s\",\"parameters\":{\"SerialNumber\":\"%s\"}}",parseToken, gMDNNumber);
+	sprintf(MqttExMessage[1], "{\"certificateOwnershipToken\":\"%s\",\"parameters\":{\"MdnNumber\":\"%s\"}}",parseToken, gMDNNumber);
 	MqttExMessageLength[1] = strlen(MqttExMessage[1]);
 
 	jsonResult = JSON_Validate(MqttExMessage[1], MqttExMessageLength[1]);
