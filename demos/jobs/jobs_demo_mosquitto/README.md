@@ -47,8 +47,7 @@ cd bin
 # Claim 인증서를 certificates 디렉토리에 복사
 cp <Claim 인증서 경로> ~/Workspace/aws-iot-device-sdk-embedded-C/build/bin/certificates/
 
-# Fleet Provisioning 실행
-./jobs_demo_mosquitto -n <Client ID> -h <Endpoint Address> --cafile <AmazonRootCA1.crt 파일 경로> --certfile <Certificate 파일 경로> --keyfile <Private 인증서 파일 경로> -m 3
+# 실행 방법은 아래를 참고하세요
 ```
 
 ## Fleet Provisioning 실행방법
