@@ -606,7 +606,7 @@ static bool parseArgs( handle_t * h,
             { NULL,        0,                 NULL, 0   }
         };
 
-        c = getopt_long( argc, argv, "c:d:h:n:l:m:n:M:N:t:?",
+        c = getopt_long( argc, argv, "c:d:h:n:l:m:n:f:M:N:t:?",
                          long_options, &option_index );
 
         if( c == -1 )
