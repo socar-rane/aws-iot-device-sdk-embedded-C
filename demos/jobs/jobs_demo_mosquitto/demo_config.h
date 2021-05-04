@@ -84,8 +84,8 @@
 #define PROVISIONING_CERT_CREATE_TOPIC "$aws/certificates/create/json"
 #define PROVISIONING_TEMPLATE_TOPIC PRE_TEMPLATE_PATH "/provision/json"
 
-#define DEVICE_UPSTREAM_TOPIC "$aws/rules/rane_report/%s/report"
-#define DEVICE_DOWNSTREAM_TOPIC "rane_control/%s/control"
+#define DEVICE_UPSTREAM_TOPIC "$aws/rules/sts/%s/report"
+#define DEVICE_DOWNSTREAM_TOPIC "sts/%s/control"
 
 #define CERTFILE_PREFIX "%s-certificate.pem.crt"
 #define KEYFILE_PREFIX "%s-private.pem.key"
