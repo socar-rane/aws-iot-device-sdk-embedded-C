@@ -61,26 +61,17 @@ static void usage( const char * programName )
 
     fprintf( stderr,
              "\nusage: %s "
-             "-h <endpoint> [-p port] -c <cert id> -n <client id> -d <cert dir> -m <mode> [-l loop <Publish only>]\n"
-             "\n"
-             "-f : Fleet Provisioning Template Name"
+             "-h <endpoint> -c <cert id> -n <client id> -d <cert dir> -m <mode> [-l loop <Publish only>]\n"
+             "-c : Certificate ID\n"
+             "-d : Cert file Directory\n"
+             "-f : Fleet Provisioning Template Name\n"
              "-n : Client ID\n"
              "-m : select mode. 1: Publish / 2: Subscribe / 3: Fleet Provisioning\n"
              "-M : Publish Message.\n"
              "-N : MDN Number\n"
              "-t : Publish / Subscribe Topic\n"
              "-l : Loop count. 0 : Forever / not 0 : Loop count <Publish only>\n"
-             "-h : mqtt endpoint Address\n"
-             "-p : network port to connect to. Defaults to %d.\n",
-             programName, DEFAULT_MQTT_PORT );
-    fprintf( stderr,
-             "--cafile    : path to a file containing trusted CA certificates to enable encrypted\n"
-             "              certificate based communication.\n"
-             "--path    : path to a directory containing trusted CA certificates to enable encrypted\n"
-             "              communication.  Defaults to %s.\n"
-             "--certfile  : client certificate for authentication in PEM format.\n"
-             "--keyfile   : client private key for authentication in PEM format.\n",
-             DEFAULT_CA_DIRECTORY );
+             "-h : mqtt endpoint Address\n");
 }
 
 /*-----------------------------------------------------------*/
@@ -640,6 +631,7 @@ static bool parseArgs( handle_t * h,
             case 'f':
             {
                 char templateName[30] = {0,};
+                assert(optarg != NULL);
                 strcpy(templateName, optarg);
                 initTopicFilter(templateName);
             }
