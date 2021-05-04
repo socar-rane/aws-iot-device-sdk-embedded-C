@@ -74,15 +74,15 @@
     execl( "/usr/bin/curl", "curl", "-OLsSN", "--limit-rate", "10k", url, NULL )
 
 #define CERTFILE_PATH   "certificates"
-#define PRE_TEMPLATE_PATH "$aws/provisioning-templates/" PRODUCTION_TEMPLATE
-#define TEMPLATE_ACCEPT_TOPIC PRE_TEMPLATE_PATH "/provision/json/accepted"
-#define TEMPLATE_REJECT_TOPIC PRE_TEMPLATE_PATH "/provision/json/rejected"
+//#define PRE_TEMPLATE_PATH "$aws/provisioning-templates/" PRODUCTION_TEMPLATE
+#define TEMPLATE_ACCEPT_TOPIC "$aws/provisioning-templates/%s/provision/json/accepted"
+#define TEMPLATE_REJECT_TOPIC "$aws/provisioning-templates/%s/provision/json/rejected"
 #define CERTIFICATE_ACCEPT_TOPIC "$aws/certificates/create/json/accepted"
 #define CERTIFICATE_REJECT_TOPIC "$aws/certificates/create/json/rejected"
-#define PRODUCTION_TEMPLATE "INSERT YOUR PROVISIONING TEMPLATE NAME"
+//#define PRODUCTION_TEMPLATE "INSERT YOUR PROVISIONING TEMPLATE NAME"
 
 #define PROVISIONING_CERT_CREATE_TOPIC "$aws/certificates/create/json"
-#define PROVISIONING_TEMPLATE_TOPIC PRE_TEMPLATE_PATH "/provision/json"
+#define PROVISIONING_TEMPLATE_TOPIC "$aws/provisioning-templates/%s/provision/json"
 
 #define DEVICE_UPSTREAM_TOPIC "$aws/rules/sts/%s/report"
 #define DEVICE_DOWNSTREAM_TOPIC "sts/%s/control"
