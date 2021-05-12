@@ -1740,7 +1740,7 @@ int main( int argc, char * argv[] )
        
     //h->lastPrompt = time( NULL );
     makeTimer("CAN Data Read", &CANTimerID, 0, 5);
-    makeTimer("MQTT Handler", &mqttTimerID, 1, 0);
+    makeTimer("MQTT Handler", &mqttTimerID, 0, 5);
 
     if(gMode == MODE_SUBSCRIBE)
         subscribe(h, TopicFilter[USER_PUBSUB]);
