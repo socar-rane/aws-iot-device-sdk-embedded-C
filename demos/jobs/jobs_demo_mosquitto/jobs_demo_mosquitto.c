@@ -13,10 +13,22 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include <err.h>
 #include <getopt.h>
+
+/* CAN Communication */
+#include <sys/socket.h>
+#include <linux/can.h>
+#include <linux/can/raw.h>
+#include <net/if.h>
+#include <sys/ioctl.h>
+#include <curses.h>
+#include <endian.h>
+
+
 
 #include <mosquitto.h>
 #if ( LIBMOSQUITTO_VERSION_NUMBER < 1004010 )
@@ -77,6 +89,37 @@ static void usage( const char * programName )
 /*-----------------------------------------------------------*/
 
 /**
+ * @brief CAN data set
+ * 
+ */ 
+
+typedef struct
+{
+	uint16_t rpm;
+	uint8_t speed;
+	uint8_t temp;
+	uint8_t turn_signal;
+	uint8_t light;
+	uint8_t seat_belt;
+	uint8_t foot_brake;
+	uint8_t trunk;
+	uint8_t hood;
+	uint8_t side_brake;
+	uint8_t gear;
+} data_set_t;
+
+/**
+ * @brief CAN frame data set
+ * 
+ */ 
+
+typedef struct
+{
+	uint32_t ids;
+	struct can_frame frames;
+} can_data_t;
+
+/**
  * @brief The several states of execution.
  */
 typedef enum
@@ -127,6 +170,13 @@ typedef struct
 } handle_t;
 
 /*-----------------------------------------------------------*/
+
+/**
+ * 
+ * 
+ */
+
+
 
 /**
  * @brief Populate a handle with default values.
@@ -338,7 +388,42 @@ static bool unsubscribe( handle_t *h, char *in_topic);
  */ 
 static void createUUIDStr();
 
+/**
+ * @brief Change MQTT Connection Information
+ * @param[in] h runtime state handle
+ */
 static bool changeConnectionInformation(handle_t *h);
+
+/**
+ * @brief Convert mapping function
+ * @param[in] x Source value
+ * @param[in] in_min before min value
+ * @param[in] in_max before max value
+ * @param[in] out_min after min value
+ * @param[in] out_max after max value
+ */ 
+long map(long x, long in_min, long in_max, long out_min, long out_max);
+
+/// @brief Initialize CAN frame data set
+static void can_frame_init();
+
+/// @brief Initialize CAN Socket
+static int can_init(int *sck, char *ifname);
+
+/// @brief Find change can data
+static void diff_can(struct can_frame frame);
+
+/// @brief Process can data
+static void process_can(struct can_frame *frame);
+
+/// @brief Receive can data
+static void receive_can(int *sck, struct can_frame *frame);
+
+/**
+ * @brief CAN Communication Thread
+ * @param[in] data CAN Socket 
+ */ 
+void *can_thread(void *data);
 
 /**
  * @brief Log an informational message.
@@ -351,7 +436,7 @@ static bool changeConnectionInformation(handle_t *h);
  * @param[in] x one of "IN_PROGRESS", "SUCCEEDED", or "FAILED"
  */
 #define makeReport_( x )    "{\"status\":\"" x "\"}"
-#define TOPIC_LENGTH		9
+#define TOPIC_LENGTH		10
 
 // Topic Identifier
 enum
@@ -364,7 +449,8 @@ enum
 	PROVISIONING_CC,        // Provisioning Create Certificate Topic
 	PROVISIONING_TT,         // Provisioning Template Topic
     USER_PUBSUB,
-    DOWNSTREAM
+    DOWNSTREAM,
+    UPSTREAM
 };
 
 enum
@@ -382,6 +468,43 @@ enum
     MODE_FLEET_PROV,
     MODE_UPDOWN_STREAM
 };
+
+enum frame_ids
+{
+	CN7_P_GEAR_SFT = 0x111,
+	CN7_P_STEERING = 0x2B0,
+	CN7_P_RPM_SPEED = 0x316,
+	CN7_P_PEDAL_POS = 0x329,
+	CN7_P_LIGHT_TH = 0x541,
+	CN7_P_WIPER = 0x553,
+	CN7_P_SOC = 0x593,
+	CN7_B_DOOR = 0x168,
+};
+
+enum can_index
+{
+	ID_GEAR,
+	ID_STEERING,
+	ID_SPEED,
+	ID_PEDAL,
+	ID_LIGHT,
+	ID_WIPER,
+	ID_SOC,
+	ID_DOOR
+};
+
+/// @brief Global CAN socket
+int *gSock = 0;
+
+/**
+ * @brief Global can data
+ */
+can_data_t cn7_data[P_IDS], b_data[P_IDS];
+
+/**
+ * @brief Global data set
+ */ 
+data_set_t current_data;
 
 /**
  * @brief Initialize Topic name
@@ -448,7 +571,209 @@ char gMDNNumber[13] = {0,};
 
 /// @brief Active Mode
 uint8_t gMode = 0, gLcount = 0, gLFlag = 1;
+
+timer_t CANTimerID;
+timer_t JSONTimerID;
+
+
 /*-----------------------------------------------------------*/
+
+static void diff_can(struct can_frame frame)
+{
+	switch(frame.can_id)
+	{
+		case CN7_P_GEAR_SFT:
+			if(b_data[ID_GEAR].frames.data[SHIFTER] != frame.data[SHIFTER])
+			{
+				current_data.gear = frame.data[SHIFTER];
+				printf("current gear : %c\n", (frame.data[SHIFTER] == 0x0) ? 'P' :
+				frame.data[SHIFTER] == 0x7 ? 'R' :
+				frame.data[SHIFTER] == 0x6 ? 'N' : 'D');
+			}
+		break;
+		case CN7_P_STEERING:
+		break;
+		case CN7_P_RPM_SPEED:
+			if(b_data[ID_SPEED].frames.data[SPEED] != frame.data[SPEED])
+			{
+				current_data.speed = frame.data[SPEED];
+				printf("current speed : %02X\n", frame.data[SPEED]);
+			}
+			
+			if(b_data[ID_SPEED].frames.data[RPM] != frame.data[RPM])
+			{
+				current_data.rpm = (uint16_t)map(frame.data[RPM], 5, 0x4E, 350, 4907);
+				printf("current rpm : %ld\n", map(frame.data[RPM], 5, 0x4E, 350, 4907));
+			}
+		break;
+		case CN7_P_PEDAL_POS:
+			//if(b_data[ID_SPEED].frames.data[TPS] != frame.data[TPS])
+				//printf("current Throttle : %02X\n", frame.data[TPS]);
+			if(b_data[ID_SPEED].frames.data[APS] != frame.data[APS])
+			{
+				//current_data.acc
+				//printf("current Accel : %02X\n", frame.data[APS]);
+			}
+			if(b_data[ID_PEDAL].frames.data[COOLANT] != frame.data[COOLANT])
+			{
+				current_data.temp = (uint8_t) map(frame.data[COOLANT], 0, 255, -48, 134);
+				printf("current temperature : %ld\n", map(frame.data[COOLANT], 0, 255, -48, 134));
+			}
+			if(b_data[ID_PEDAL].frames.data[FOOTBRAKE] != frame.data[FOOTBRAKE])
+			{
+				current_data.foot_brake = (frame.data[FOOTBRAKE] >> 1);
+				printf("foot brake : %s\n", frame.data[FOOTBRAKE] == 0x02 ? "On" : "Off");
+			}
+		break;
+		case CN7_P_LIGHT_TH:
+			if(b_data[ID_LIGHT].frames.data[HAZARD] != frame.data[HAZARD])
+			{
+				current_data.turn_signal = (frame.data[HAZARD] == 0x02) ? 1 : 0;
+				printf("Hazard : %s\n", (frame.data[HAZARD] == 0x02) ? "On": "Off");
+			}
+			else if(b_data[ID_LIGHT].frames.data[TURN_HOOD] != frame.data[TURN_HOOD])
+			{
+				if((((frame.data[TURN_HOOD] >> 3) == 0) || ((frame.data[TURN_HOOD] >> 3) == 1))
+				&& ((frame.data[TURN_HOOD] & 0x02) == (b_data[ID_LIGHT].frames.data[TURN_HOOD] & 0x02)))
+				{
+					current_data.turn_signal = (frame.data[TURN_HOOD] >> 3) ? 2 : 0;
+					printf("L_Turn : %s / %02X\n", (frame.data[TURN_HOOD] >> 3) ? "On": "Off" , frame.data[TURN_HOOD] >> 3);
+				}
+				else if(((((frame.data[TURN_HOOD] & 0x02) >> 1) == 1) || ((((frame.data[TURN_HOOD] & 0x02) >> 1) == 0)))
+				&& ((frame.data[TURN_HOOD] >> 3) == (b_data[ID_LIGHT].frames.data[TURN_HOOD] >> 3)))
+				{
+					current_data.hood = (frame.data[TURN_HOOD] & 0x02) >> 1;
+					printf("Hood : %s\n", (((frame.data[TURN_HOOD] & 0x02) >> 1) == 1) ? "On": "Off");
+				}
+			}
+			else if(b_data[ID_LIGHT].frames.data[TURN_SIDE] != frame.data[TURN_SIDE])
+			{
+				if(((frame.data[TURN_SIDE] >> 6) == 1 || (frame.data[TURN_SIDE] >> 6) == 0) 
+					&& ((frame.data[TURN_SIDE] & 0x10) == (b_data[ID_LIGHT].frames.data[TURN_SIDE] & 0x10)))
+					{
+						current_data.turn_signal = ((frame.data[TURN_SIDE] >> 6) == 1) ? 3 : 0;
+						printf("R_Turn : %s\n", ((frame.data[TURN_SIDE] >> 6) == 1) ? "On": "Off");
+					}
+				else if(((((frame.data[TURN_SIDE] & 0x10) >> 4) == 1) || (((frame.data[TURN_SIDE] & 0x10) >> 4) == 0))
+					&& ((frame.data[TURN_SIDE] >> 6) == (b_data[ID_LIGHT].frames.data[TURN_SIDE] >> 6)))
+					{
+						current_data.side_brake = ((frame.data[TURN_SIDE] & 0x10) >> 4);
+						printf("Side Brake : %s\n", (((frame.data[TURN_SIDE] & 0x10) >> 4) == 1) ? "On": "Off");
+					}
+			}
+				
+			else if(b_data[ID_LIGHT].frames.data[HEADLAMP] != frame.data[HEADLAMP])
+			{
+				current_data.light = (frame.data[HEADLAMP] == 0x80) ? 1 : 0;
+				printf("Light : %s\n", (frame.data[HEADLAMP] == 0x80) ? "On": "Off");
+			}
+			
+			if(b_data[ID_LIGHT].frames.data[TRUNK_SEATBELT] != frame.data[TRUNK_SEATBELT])
+			{
+				if(((frame.data[TRUNK_SEATBELT] >> 4) == 1 || (frame.data[TRUNK_SEATBELT] >> 4) == 0) 
+				&& ((frame.data[TRUNK_SEATBELT] & 0x04) == (b_data[ID_LIGHT].frames.data[TRUNK_SEATBELT] & 0x04)))
+				{
+					current_data.trunk = ((frame.data[TRUNK_SEATBELT] >> 4) == 1) ? 1 : 0;
+					printf("Trunk : %s\n", ((frame.data[TRUNK_SEATBELT] >> 4) == 1) ? "On" : "Off");
+				}
+				else if(((((frame.data[TRUNK_SEATBELT] & 0x04) >> 2) == 1) || (((frame.data[TRUNK_SEATBELT] & 0x04) >> 2) == 0))
+				&& ((frame.data[TRUNK_SEATBELT] >> 4) == (b_data[ID_LIGHT].frames.data[TRUNK_SEATBELT] >> 4)))
+				{
+					current_data.seat_belt = (((frame.data[TRUNK_SEATBELT] & 0x04) >> 2) == 1) ? 1 : 0;
+					printf("Seat Belt : %s\n", (((frame.data[TRUNK_SEATBELT] & 0x04) >> 2) == 1) ? "On" : "Off");
+				}
+				
+			}
+		break;
+		case CN7_P_WIPER:
+		break;
+		case CN7_P_SOC:
+		break;
+		case CN7_B_DOOR:
+		break;
+	}
+}
+
+static void process_can(struct can_frame *frame)
+{
+
+	int i = 0;
+
+	for(i = 0 ; i < P_IDS ; i++)
+	{
+		if(frame->can_id == cn7_data[i].ids)
+		{
+			memcpy(&cn7_data[i].frames.data, frame->data, sizeof(uint8_t)*8);
+			cn7_data[i].frames.can_id = frame->can_id;
+			diff_can(cn7_data[i].frames);
+			b_data[i] = cn7_data[i];
+		}
+	}
+}
+
+static void receive_can(int *sck, struct can_frame *frame)
+{
+
+	int bytes = 0;
+
+	bytes = read(*sck, frame, sizeof(struct can_frame));
+
+	if(bytes < 0)
+	{
+		perror("Read Error\n");
+		exit(1);
+	}
+	process_can(frame);
+}
+
+static void timer_handler(int sig, siginfo_t *si, void *uc)
+{
+    timer_t *tidp;
+    tidp = si->si_value.sival_ptr;
+    struct can_frame frame;
+    if(*tidp == CANTimerID)
+    {
+        receive_can(gSock, &frame);
+    }
+    else if(*tidp == JSONTimerID)
+    {
+
+    }
+}
+
+static int makeTimer(char *name, timer_t *timerID, int sec, int msec)
+{
+    struct sigevent te;
+    struct itimerspec its;
+    struct sigaction sa;  
+    int sigNo = SIGRTMIN;  
+   
+    /* Set up signal handler. */  
+    sa.sa_flags = SA_SIGINFO;  
+    sa.sa_sigaction = timer_handler;  
+    sigemptyset(&sa.sa_mask);  
+  
+    if (sigaction(sigNo, &sa, NULL) == -1)  
+    {  
+        printf("sigaction error\n");
+        return -1;  
+    }  
+   
+    /* Set and enable alarm */  
+    te.sigev_notify = SIGEV_SIGNAL;  
+    te.sigev_signo = sigNo;  
+    te.sigev_value.sival_ptr = timerID;  
+    timer_create(CLOCK_REALTIME, &te, timerID);  
+   
+    its.it_interval.tv_sec = sec;
+    its.it_interval.tv_nsec = msec * 1000000;  
+    its.it_value.tv_sec = sec;
+    
+    its.it_value.tv_nsec = msec * 1000000;
+    timer_settime(*timerID, 0, &its, NULL);  
+   
+    return 0;  
+}
 
 void initTopicFilter(char *t_name)
 {
@@ -1193,6 +1518,7 @@ static void teardown( int x,
         free( h->jobid );
     }
 
+    close(*gSock);
     closeConnection( h );
     mosquitto_destroy( h->m );
     mosquitto_lib_cleanup();
@@ -1273,6 +1599,11 @@ int main( int argc, char * argv[] )
     createUUIDStr();
     initHandle( h, 1 );
 
+    can_frame_init();
+    can_init(gSock, "can0");
+
+    makeTimer("CAN Data Read", &CANTimerID, 2, 0);
+
     if( parseArgs( h, argc, argv ) == false )
     {
         exit( 1 );
@@ -1351,6 +1682,10 @@ int main( int argc, char * argv[] )
                     sprintf(TopicFilter[DOWNSTREAM], DEVICE_DOWNSTREAM_TOPIC, gClientId);
                     TopicFilterLength[DOWNSTREAM] = strlen(TopicFilter[DOWNSTREAM]);
                     subscribe(h, TopicFilter[DOWNSTREAM]);
+
+                    sprintf(TopicFilter[UPSTREAM], DEVICE_UPSTREAM_TOPIC, gClientId);
+                    TopicFilterLength[UPSTREAM] = strlen(TopicFilter[UPSTREAM]);
+                    subscribe(h, TopicFilter[UPSTREAM]);
                     completeFlag[2] = false;
                 }
             break; 
