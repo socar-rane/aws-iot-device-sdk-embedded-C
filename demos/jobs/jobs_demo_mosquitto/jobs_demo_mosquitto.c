@@ -419,6 +419,8 @@ static void process_can(struct can_frame *frame);
 /// @brief Receive can data
 static void receive_can(int *sck, struct can_frame *frame);
 
+
+static void mqtt_handler();
 /**
  * @brief Log an informational message.
  */
