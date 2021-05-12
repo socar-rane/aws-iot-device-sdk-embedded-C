@@ -568,7 +568,7 @@ uint8_t gMode = 0, gLcount = 0, gLFlag = 1;
 
 timer_t CANTimerID;
 timer_t JSONTimerID;
-handle_t *h;
+
 
 /*-----------------------------------------------------------*/
 
@@ -1641,8 +1641,7 @@ static void createUUIDStr()
 
 int main( int argc, char * argv[] )
 {
-    handle_t h_;
-    * h = &h_;
+    handle_t h_, * h = &h_;
     time_t now;
     int i = 0, sock = 0;
 
@@ -1744,6 +1743,7 @@ int main( int argc, char * argv[] )
             {
                 errx( 1, "mosquitto_loop: %s", mosquitto_strerror( m_ret ) );
             }
+
             //now = time( NULL );
         }
         sleep(1);
