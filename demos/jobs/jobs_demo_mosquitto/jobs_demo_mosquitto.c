@@ -569,6 +569,8 @@ uint8_t gMode = 0, gLcount = 0, gLFlag = 1;
 timer_t CANTimerID;
 timer_t JSONTimerID;
 
+handle_t *g_h;
+
 
 /*-----------------------------------------------------------*/
 
@@ -846,6 +848,7 @@ static void json_handler()
 
     printf("JSON : \n%s\n", buffer);
 
+    publish(h, TopicFilter[USER_PUBSUB], buffer);
 }
 
 static void timer_handler(int sig, siginfo_t *si, void *uc)
@@ -1718,6 +1721,8 @@ int main( int argc, char * argv[] )
     time_t now;
     int i = 0, sock = 0;
 
+    g_h = h;
+
     createUUIDStr();
     initHandle( h, 1 );
 
@@ -1740,7 +1745,7 @@ int main( int argc, char * argv[] )
        
     //h->lastPrompt = time( NULL );
     makeTimer("CAN Data Read", &CANTimerID, 0, 5);
-    makeTimer("JSON Timer handler", &JSONTimerID, 2, 0);
+    makeTimer("JSON Timer handler", &JSONTimerID, 3, 0);
     if(gMode == MODE_SUBSCRIBE)
         subscribe(h, TopicFilter[USER_PUBSUB]);
 
