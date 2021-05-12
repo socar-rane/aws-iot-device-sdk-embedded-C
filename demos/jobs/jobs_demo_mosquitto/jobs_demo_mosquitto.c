@@ -1642,11 +1642,11 @@ int main( int argc, char * argv[] )
        
     //h->lastPrompt = time( NULL );
 
-    ret = pthread_create(&cThread, NULL, can_thread, NULL);
-    if(ret < 0)
-    {
-        errx(1, "Thread create error : ");
-    }
+    //ret = pthread_create(&cThread, NULL, can_thread, NULL);
+    //if(ret < 0)
+    //{
+    //    errx(1, "Thread create error : ");
+    //}
     if(gMode == MODE_SUBSCRIBE)
         subscribe(h, TopicFilter[USER_PUBSUB]);
 
@@ -1730,6 +1730,7 @@ int main( int argc, char * argv[] )
             //now = time( NULL );
         }
         printf("count sleep\n");
+        receive_can(gSock, &frame);
         sleep(1);
     }
 
