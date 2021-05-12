@@ -1618,6 +1618,7 @@ int main( int argc, char * argv[] )
 {
     handle_t h_, * h = &h_;
     time_t now;
+    struct can_frame frame;
     int i = 0, sock = 0, ret = 0;
 
     createUUIDStr();
