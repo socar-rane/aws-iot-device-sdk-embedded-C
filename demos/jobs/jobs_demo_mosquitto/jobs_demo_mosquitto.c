@@ -571,9 +571,6 @@ uint8_t gMode = 0, gLcount = 0, gLFlag = 1;
 timer_t CANTimerID;
 timer_t JSONTimerID;
 
-handle_t *g_h;
-
-
 /*-----------------------------------------------------------*/
 
 static void can_frame_init()
@@ -1722,9 +1719,7 @@ int main( int argc, char * argv[] )
     handle_t h_, * h = &h_;
     time_t now;
     int i = 0, sock = 0;
-
-    g_h = h;
-
+    
     createUUIDStr();
     initHandle( h, 1 );
 
