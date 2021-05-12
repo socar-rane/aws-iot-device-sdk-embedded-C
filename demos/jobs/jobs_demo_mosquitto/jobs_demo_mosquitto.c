@@ -1774,7 +1774,7 @@ static void mqtt_handler()
 
                 sprintf(TopicFilter[UPSTREAM], DEVICE_UPSTREAM_TOPIC, gClientId);
                 TopicFilterLength[UPSTREAM] = strlen(TopicFilter[UPSTREAM]);
-                subscribe(g_h, TopicFilter[UPSTREAM]);
+//                subscribe(g_h, TopicFilter[UPSTREAM]);
                 completeFlag[2] = false;
             }
         break; 
