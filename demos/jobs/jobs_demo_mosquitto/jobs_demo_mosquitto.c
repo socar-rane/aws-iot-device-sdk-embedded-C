@@ -1543,7 +1543,7 @@ static void teardown( int x,
 
     close(*gSock);
     closeConnection( h );
-    pthread_detach(&cThread);
+    pthread_detach(cThread);
     mosquitto_destroy( h->m );
     mosquitto_lib_cleanup();
 }
