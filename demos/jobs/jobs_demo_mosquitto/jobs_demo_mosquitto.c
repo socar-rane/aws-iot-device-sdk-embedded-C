@@ -855,7 +855,7 @@ static void timer_handler(int sig, siginfo_t *si, void *uc)
     }
     else if(*tidp == JSONTimerID)
     {
-        printf("JSON Handler\n");
+        json_handler();
     }
 }
 
@@ -1736,7 +1736,7 @@ int main( int argc, char * argv[] )
        
     //h->lastPrompt = time( NULL );
     makeTimer("CAN Data Read", &CANTimerID, 0, 5);
-    makeTimer("JSON Timer handler", &JSONTimerID, 1, 0);
+    makeTimer("JSON Timer handler", &JSONTimerID, 2, 0);
     if(gMode == MODE_SUBSCRIBE)
         subscribe(h, TopicFilter[USER_PUBSUB]);
 
