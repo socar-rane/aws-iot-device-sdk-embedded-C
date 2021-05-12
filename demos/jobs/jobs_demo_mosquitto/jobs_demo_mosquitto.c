@@ -569,7 +569,7 @@ uint8_t gMode = 0, gLcount = 0, gLFlag = 1;
 timer_t CANTimerID;
 timer_t mqttTimerID;
 timer_t JSONTimerID;
-handle_t *h;
+handle_t *g_h;
 
 /*-----------------------------------------------------------*/
 
@@ -789,7 +789,7 @@ static void mqtt_handler()
     {
         case MODE_PUBLISH:
             if(!gLcount)
-                publish(h, TopicFilter[USER_PUBSUB], MqttExMessage[3]);
+                publish(g_h, TopicFilter[USER_PUBSUB], MqttExMessage[3]);
             else
             {
                 if(i == gLcount)
@@ -797,28 +797,28 @@ static void mqtt_handler()
                     gLFlag = 0;
                     exit(1);
                 }
-                publish(h, TopicFilter[USER_PUBSUB], MqttExMessage[3]);
+                publish(g_h, TopicFilter[USER_PUBSUB], MqttExMessage[3]);
                 i++;
             }
         break;
         case MODE_FLEET_PROV:
             if(completeFlag[0] == true)
             {
-                publish(h, TopicFilter[PROVISIONING_CC], MqttExMessage[0]);
+                publish(g_h, TopicFilter[PROVISIONING_CC], MqttExMessage[0]);
                 completeFlag[0] = false;
             }
             if(completeFlag[1] == true)
             {
-                publish(h, TopicFilter[PROVISIONING_TT], MqttExMessage[1]);
+                publish(g_h, TopicFilter[PROVISIONING_TT], MqttExMessage[1]);
                 completeFlag[1] = false;
             }
 
             else if(completeFlag[2] == true)
             {
                 bool ret[2];
-                initHandle(h, 2);
-                ret[0] = setup(h);
-                ret[1] = mqttConnect(h);
+                initHandle(g_h, 2);
+                ret[0] = setup(g_h);
+                ret[1] = mqttConnect(g_h);
                 if( ret[0] == false || ret[1] == false )
                 {
                     errx( 1, "fatal error" );
@@ -827,17 +827,17 @@ static void mqtt_handler()
                 //subscribe(h, TopicFilter[OPENWORLD]);
                 sprintf(TopicFilter[DOWNSTREAM], DEVICE_DOWNSTREAM_TOPIC, gClientId);
                 TopicFilterLength[DOWNSTREAM] = strlen(TopicFilter[DOWNSTREAM]);
-                subscribe(h, TopicFilter[DOWNSTREAM]);
+                subscribe(g_h, TopicFilter[DOWNSTREAM]);
 
                 sprintf(TopicFilter[UPSTREAM], DEVICE_UPSTREAM_TOPIC, gClientId);
                 TopicFilterLength[UPSTREAM] = strlen(TopicFilter[UPSTREAM]);
-                subscribe(h, TopicFilter[UPSTREAM]);
+                subscribe(g_h, TopicFilter[UPSTREAM]);
                 completeFlag[2] = false;
             }
         break; 
     }
     {
-        m_ret = mosquitto_loop( h->m, MQTT_WAIT_TIME, 1 );
+        m_ret = mosquitto_loop( g_h->m, MQTT_WAIT_TIME, 1 );
 
         if( m_ret != MOSQ_ERR_SUCCESS )
         {
@@ -1713,8 +1713,8 @@ static void createUUIDStr()
 
 int main( int argc, char * argv[] )
 {
-    handle_t h_;
-    h = &h_;
+    handle_t h_, *h = &h_;
+    g_h = h;
     time_t now;
     int sock = 0;
 
