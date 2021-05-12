@@ -789,54 +789,58 @@ static void json_handler()
     strcpy(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    sprintf(temp, "\"cdma_id\" : %d\n", atoi(gMDNNumber));
+    sprintf(temp, "\t\"cdma_id\" : %d\n", atoi(gMDNNumber));
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    sprintf(temp, "\"trunk\" : \"%s\"\n", current_data.trunk ? "On" : "Off");
+    sprintf(temp, "\t\"trunk\" : \"%s\"\n", current_data.trunk ? "On" : "Off");
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    sprintf(temp, "\"hood\" : \"%s\"\n", current_data.hood ? "On" : "Off");
+    sprintf(temp, "\t\"hood\" : \"%s\"\n", current_data.hood ? "On" : "Off");
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    sprintf(temp, "\"side_brake\" : \"%s\"\n", current_data.side_brake ? "On" : "Off");
+    sprintf(temp, "\t\"side_brake\" : \"%s\"\n", current_data.side_brake ? "On" : "Off");
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    sprintf(temp, "\"gear\" : \"%c\"\n", (current_data.gear == 0x0) ? 'P' :
+    sprintf(temp, "\t\"gear\" : \"%c\"\n", (current_data.gear == 0x0) ? 'P' :
 				current_data.gear == 0x7 ? 'R' :
 				current_data.gear == 0x6 ? 'N' : 'D');
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    sprintf(temp, "\"turn_signal\" : \"%s\"\n", current_data.turn_signal == 1 ? "Hazard" :
+    sprintf(temp, "\t\"turn_signal\" : \"%s\"\n", current_data.turn_signal == 1 ? "Hazard" :
     current_data.turn_signal == 2 ? "Left" : current_data.turn_signal == 3 ? "Right" : "Off");
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    sprintf(temp, "\"light\" : \"%s\"\n", current_data.light ? "On" : "Off");
+    sprintf(temp, "\t\"light\" : \"%s\"\n", current_data.light ? "On" : "Off");
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    sprintf(temp, "\"coolant\" : %d\n", current_data.temp);
+    sprintf(temp, "\t\"coolant\" : %d\n", current_data.temp);
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    sprintf(temp, "\"speed\" : %d\n", current_data.speed);
+    sprintf(temp, "\t\"speed\" : %d\n", current_data.speed);
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    sprintf(temp, "\"rpm\" : %d\n", current_data.rpm);
+    sprintf(temp, "\t\"rpm\" : %d\n", current_data.rpm);
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
     time(&rawtime);
     timeinfo = localtime(&rawtime);
-    strftime(t_buff, 128, "%Z-%m-%d %H:%M:%S", timeinfo);
+    strftime(t_buff, 128, "%Y-%m-%d %H:%M:%S", timeinfo);
 
-    sprintf(temp, "\"created_at\" : %s\n", t_buff);
+    sprintf(temp, "\t\"created_at\" : %s\n", t_buff);
+    strcat(buffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp, "}\n", t_buff);
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
