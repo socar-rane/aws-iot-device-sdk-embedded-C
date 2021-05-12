@@ -806,8 +806,8 @@ static void json_handler()
     memset(temp, 0, sizeof(char) * 128);
 
     sprintf(temp, "\"gear\" : \"%c\"\n", (current_data.gear == 0x0) ? 'P' :
-				frame.data[SHIFTER] == 0x7 ? 'R' :
-				frame.data[SHIFTER] == 0x6 ? 'N' : 'D');
+				current_data.gear == 0x7 ? 'R' :
+				current_data.gear == 0x6 ? 'N' : 'D');
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
