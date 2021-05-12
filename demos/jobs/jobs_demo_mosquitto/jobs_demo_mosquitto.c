@@ -848,7 +848,7 @@ static void json_handler()
 
     printf("JSON : \n%s\n", buffer);
 
-    publish(h, TopicFilter[USER_PUBSUB], buffer);
+    publish(g_h, TopicFilter[USER_PUBSUB], buffer);
 }
 
 static void timer_handler(int sig, siginfo_t *si, void *uc)
