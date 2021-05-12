@@ -420,12 +420,6 @@ static void process_can(struct can_frame *frame);
 static void receive_can(int *sck, struct can_frame *frame);
 
 /**
- * @brief CAN Communication Thread
- * @param[in] data CAN Socket 
- */ 
-void *can_thread(void *data);
-
-/**
  * @brief Log an informational message.
  */
 #define info    warnx
@@ -1672,7 +1666,7 @@ int main( int argc, char * argv[] )
     }
        
     //h->lastPrompt = time( NULL );
-    makeTimer("CAN Data Read", &CANTimerID, 0, 10);
+    makeTimer("CAN Data Read", &CANTimerID, 0, 5);
 
     if(gMode == MODE_SUBSCRIBE)
         subscribe(h, TopicFilter[USER_PUBSUB]);
