@@ -1679,10 +1679,6 @@ int main( int argc, char * argv[] )
                 }
                 completeFlag[0] = true; 
     }
-    else if(gMode == MODE_UPDOWN_STREAM)
-    {
-
-    }
 
     while(gLFlag)
     {
@@ -1741,6 +1737,7 @@ int main( int argc, char * argv[] )
             break; 
         }
         {
+            info("mosquitto loop\n");
             m_ret = mosquitto_loop( h->m, MQTT_WAIT_TIME, 1 );
 
             if( m_ret != MOSQ_ERR_SUCCESS )
