@@ -779,6 +779,37 @@ static void receive_can(int *sck, struct can_frame *frame)
 	process_can(frame);
 }
 
+static void json_handler()
+{
+    char temp[128] = {0,}, buffer[2048] = {0,}, t_buff[128] = {0,};
+    time_t rawtime;
+    struct tm* timeinfo;
+
+    sprintf(temp, "{\n");
+    strcpy(buffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp, "\"cdma_id\" : %d\n", atoi(gMDNNumber));
+    strcat(buffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp, "\"car_id\" : 12345\n");
+    strcat(buffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+    strftime(t_buff, 128, "%Z-%m-%d %H:%M:%S", timeinfo);
+
+    sprintf(temp, "\"created_at\" : %s\n", t_buff);
+    strcat(buffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp, "\"engine\" : %d\n", atoi(gMDNNumber));
+    strcat(buffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+}
+
 static void timer_handler(int sig, siginfo_t *si, void *uc)
 {
     timer_t *tidp;
@@ -790,7 +821,7 @@ static void timer_handler(int sig, siginfo_t *si, void *uc)
     }
     else if(*tidp == JSONTimerID)
     {
-        
+        printf("JSON Handler\n");
     }
 }
 
