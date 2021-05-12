@@ -529,7 +529,7 @@ char queryCertificate[4][64] =
 };
 
 /// @brief Provisioning complete Flag
-bool completeFlag[3] = {false, false, false};
+bool completeFlag[4] = {false, false, false, false};
 
 /// @brief Endpoint Device UUID
 char uuidStr[64] = {0,};
