@@ -848,7 +848,7 @@ static void json_handler()
 
     printf("JSON : \n%s\n", buffer);
 
-    publish(g_h, TopicFilter[USER_PUBSUB], buffer);
+    publish(g_h, TopicFilter[UPSTREAM], buffer);
 }
 
 static void timer_handler(int sig, siginfo_t *si, void *uc)
@@ -1807,9 +1807,9 @@ int main( int argc, char * argv[] )
                     TopicFilterLength[DOWNSTREAM] = strlen(TopicFilter[DOWNSTREAM]);
                     subscribe(h, TopicFilter[DOWNSTREAM]);
 
-                    sprintf(TopicFilter[UPSTREAM], DEVICE_UPSTREAM_TOPIC, gClientId);
-                    TopicFilterLength[UPSTREAM] = strlen(TopicFilter[UPSTREAM]);
-                    subscribe(h, TopicFilter[UPSTREAM]);
+                    sprintf(TopicFilter[DOWNSTREAM], DEVICE_DOWNSTREAM_TOPIC, gClientId);
+                    TopicFilterLength[DOWNSTREAM] = strlen(TopicFilter[DOWNSTREAM]);
+    
                     completeFlag[2] = false;
                 }
             break; 
