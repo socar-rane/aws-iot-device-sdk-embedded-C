@@ -836,7 +836,7 @@ static void json_handler()
 
     time(&rawtime);
     timeinfo = localtime(&rawtime);
-    strftime(t_buff, 128, "%Y-%m-%d %H:%M:%S", timeinfo);
+    strftime(t_buff, 128, "\"%Y-%m-%d %H:%M:%S\"", timeinfo);
 
     sprintf(temp, "\t\"created_at\" : %s\n", t_buff);
     strcat(buffer,temp);
