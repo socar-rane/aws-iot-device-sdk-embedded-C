@@ -1826,6 +1826,7 @@ int main( int argc, char * argv[] )
 
             //now = time( NULL );
         }
+        printf("main loop\n");
         sleep(1);
     }
 
