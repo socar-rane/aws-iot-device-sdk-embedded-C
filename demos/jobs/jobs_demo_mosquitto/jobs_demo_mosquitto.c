@@ -1672,7 +1672,7 @@ int main( int argc, char * argv[] )
     }
        
     //h->lastPrompt = time( NULL );
-    makeTimer("CAN Data Read", &CANTimerID, 0, 1);
+    makeTimer("CAN Data Read", &CANTimerID, 0, 10);
 
     if(gMode == MODE_SUBSCRIBE)
         subscribe(h, TopicFilter[USER_PUBSUB]);
@@ -1756,7 +1756,6 @@ int main( int argc, char * argv[] )
 
             //now = time( NULL );
         }
-        printf("count sleep\n");
         sleep(1);
     }
 
