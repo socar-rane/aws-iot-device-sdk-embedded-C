@@ -639,6 +639,7 @@ long map(long x, long in_min, long in_max, long out_min, long out_max)
 
 static void diff_can(struct can_frame frame)
 {
+    printf("diff can\n");
 	switch(frame.can_id)
 	{
 		case CN7_P_GEAR_SFT:
@@ -757,7 +758,7 @@ static void process_can(struct can_frame *frame)
 {
 
 	int i = 0;
-
+    printf("process can\n");
 	for(i = 0 ; i < P_IDS ; i++)
 	{
 		if(frame->can_id == cn7_data[i].ids)
@@ -791,7 +792,7 @@ void *can_thread()
 
     while(1)
     {
-        printf("receive can\n");
+        
         receive_can(gSock, &frame);
         usleep(100000);
     }
