@@ -1672,7 +1672,7 @@ int main( int argc, char * argv[] )
     }
        
     //h->lastPrompt = time( NULL );
-    makeTimer("CAN Data Read", &CANTimerID, 2, 0);
+    makeTimer("CAN Data Read", &CANTimerID, 0, 100);
 
     if(gMode == MODE_SUBSCRIBE)
         subscribe(h, TopicFilter[USER_PUBSUB]);
