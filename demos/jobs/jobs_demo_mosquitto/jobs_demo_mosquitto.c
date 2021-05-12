@@ -1714,7 +1714,7 @@ static void createUUIDStr()
 int main( int argc, char * argv[] )
 {
     handle_t h_;
-    * h = &h_;
+    h = &h_;
     time_t now;
     int sock = 0;
 
