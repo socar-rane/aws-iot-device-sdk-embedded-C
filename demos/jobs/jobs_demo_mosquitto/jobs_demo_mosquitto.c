@@ -1760,6 +1760,7 @@ int main( int argc, char * argv[] )
 
             //now = time( NULL );
         }
+        printf("count sleep\n");
         sleep(1);
     }
 
