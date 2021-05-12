@@ -950,7 +950,7 @@ void initHandle( handle_t * p, uint8_t flag )
             h.certfile = gCertFile;
             h.keyfile = gPrivateKey;
             h.cafile = gCAFileName;
-                //h.capath = "./certificates";
+            h.capath = "./certificates";
         }
         break;
     }
