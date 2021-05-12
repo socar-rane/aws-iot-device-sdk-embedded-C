@@ -1776,6 +1776,11 @@ static void mqtt_handler()
                 TopicFilterLength[UPSTREAM] = strlen(TopicFilter[UPSTREAM]);
 //                subscribe(g_h, TopicFilter[UPSTREAM]);
                 completeFlag[2] = false;
+                completeFlag[3] = true;
+            }
+            else if(completeFlag[3] == true)
+            {
+                publish(h, TopicFilter[UPSTREAM], buffer);
             }
         break; 
     }
