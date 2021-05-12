@@ -1653,15 +1653,15 @@ int main( int argc, char * argv[] )
 {
     handle_t h_, * h = &h_;
     time_t now;
-    int i = 0;
+    int i = 0, sock = 0;
 
     createUUIDStr();
     initHandle( h, 1 );
 
     can_frame_init();
-    can_init(gSock, "can0");
+    can_init(&sock, "can0");
 
-    makeTimer("CAN Data Read", &CANTimerID, 2, 0);
+    gSock = &sock;
 
     if( parseArgs( h, argc, argv ) == false )
     {
@@ -1676,6 +1676,7 @@ int main( int argc, char * argv[] )
     }
        
     //h->lastPrompt = time( NULL );
+    makeTimer("CAN Data Read", &CANTimerID, 2, 0);
 
     if(gMode == MODE_SUBSCRIBE)
         subscribe(h, TopicFilter[USER_PUBSUB]);
