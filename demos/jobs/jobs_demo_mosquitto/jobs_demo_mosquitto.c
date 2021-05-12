@@ -1726,8 +1726,7 @@ int main( int argc, char * argv[] )
             if( m_ret != MOSQ_ERR_SUCCESS )
             {
                 errx( 1, "mosquitto_loop: %s", mosquitto_strerror( m_ret ) );
-            }ff
-
+            }
             //now = time( NULL );
         }
         printf("count sleep\n");
