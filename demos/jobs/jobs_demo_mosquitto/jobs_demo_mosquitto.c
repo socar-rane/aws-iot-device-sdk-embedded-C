@@ -791,6 +791,7 @@ void *can_thread()
 
     while(1)
     {
+        printf("receive can\n");
         receive_can(gSock, &frame);
         usleep(100000);
     }
