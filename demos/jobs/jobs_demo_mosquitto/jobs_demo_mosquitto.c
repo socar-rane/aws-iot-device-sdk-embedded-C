@@ -791,46 +791,46 @@ static void json_handler()
     strcpy(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    sprintf(temp, "\t\"cdma_id\" : %d\n", atoi(gMDNNumber));
+    sprintf(temp, "\t\"cdma_id\" : %d,\n", atoi(gMDNNumber));
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    sprintf(temp, "\t\"trunk\" : \"%s\"\n", current_data.trunk ? "On" : "Off");
+    sprintf(temp, "\t\"trunk\" : \"%s\",\n", current_data.trunk ? "On" : "Off");
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    sprintf(temp, "\t\"hood\" : \"%s\"\n", current_data.hood ? "On" : "Off");
+    sprintf(temp, "\t\"hood\" : \"%s\",\n", current_data.hood ? "On" : "Off");
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    sprintf(temp, "\t\"side_brake\" : \"%s\"\n", current_data.side_brake ? "On" : "Off");
+    sprintf(temp, "\t\"side_brake\" : \"%s\",\n", current_data.side_brake ? "On" : "Off");
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    sprintf(temp, "\t\"gear\" : \"%c\"\n", (current_data.gear == 0x0) ? 'P' :
+    sprintf(temp, "\t\"gear\" : \"%c\",\n", (current_data.gear == 0x0) ? 'P' :
 				current_data.gear == 0x7 ? 'R' :
 				current_data.gear == 0x6 ? 'N' : 'D');
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    sprintf(temp, "\t\"turn_signal\" : \"%s\"\n", current_data.turn_signal == 1 ? "Hazard" :
+    sprintf(temp, "\t\"turn_signal\" : \"%s\",\n", current_data.turn_signal == 1 ? "Hazard" :
     current_data.turn_signal == 2 ? "Left" : current_data.turn_signal == 3 ? "Right" : "Off");
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    sprintf(temp, "\t\"light\" : \"%s\"\n", current_data.light ? "On" : "Off");
+    sprintf(temp, "\t\"light\" : \"%s\",\n", current_data.light ? "On" : "Off");
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    sprintf(temp, "\t\"coolant\" : %d\n", current_data.temp);
+    sprintf(temp, "\t\"coolant\" : %d,\n", current_data.temp);
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    sprintf(temp, "\t\"speed\" : %d\n", current_data.speed);
+    sprintf(temp, "\t\"speed\" : %d,\n", current_data.speed);
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    sprintf(temp, "\t\"rpm\" : %d\n", current_data.rpm);
+    sprintf(temp, "\t\"rpm\" : %d,\n", current_data.rpm);
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
