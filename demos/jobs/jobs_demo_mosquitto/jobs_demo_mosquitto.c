@@ -792,8 +792,7 @@ static void timer_handler(int sig, siginfo_t *si, void *uc)
     struct can_frame frame;
     if(*tidp == CANTimerID)
     {
-        printf("receive_timer\n");
-        //receive_can(gSock, &frame);
+        receive_can(gSock, &frame);
     }
 }
 
