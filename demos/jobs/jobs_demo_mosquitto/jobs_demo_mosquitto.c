@@ -793,7 +793,42 @@ static void json_handler()
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    sprintf(temp, "\"car_id\" : 12345\n");
+    sprintf(temp, "\"trunk\" : \"%s\"\n", current_data.trunk ? "On" : "Off");
+    strcat(buffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp, "\"hood\" : \"%s\"\n", current_data.hood ? "On" : "Off");
+    strcat(buffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp, "\"side_brake\" : \"%s\"\n", current_data.side_brake ? "On" : "Off");
+    strcat(buffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp, "\"gear\" : \"%c\"\n", (current_data.gear == 0x0) ? 'P' :
+				frame.data[SHIFTER] == 0x7 ? 'R' :
+				frame.data[SHIFTER] == 0x6 ? 'N' : 'D');
+    strcat(buffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp, "\"turn_signal\" : \"%s\"\n", current_data.turn_signal == 1 ? "Hazard" :
+    current_data.turn_signal == 2 ? "Left" : current_data.turn_signal == 3 ? "Right" : "Off");
+    strcat(buffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp, "\"light\" : \"%s\"\n", current_data.light ? "On" : "Off");
+    strcat(buffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp, "\"coolant\" : %d\n", current_data.temp);
+    strcat(buffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp, "\"speed\" : %d\n", current_data.speed);
+    strcat(buffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp, "\"rpm\" : %d\n", current_data.rpm);
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
@@ -805,9 +840,8 @@ static void json_handler()
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    sprintf(temp, "\"engine\" : %d\n", atoi(gMDNNumber));
-    strcat(buffer,temp);
-    memset(temp, 0, sizeof(char) * 128);
+    printf("JSON : \n%s\n", buffer);
+
 }
 
 static void timer_handler(int sig, siginfo_t *si, void *uc)
