@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <pthread.h>
 
 /* POSIX includes. */
 #include <signal.h>
@@ -424,7 +423,7 @@ static void receive_can(int *sck, struct can_frame *frame);
  * @brief CAN Communication Thread
  * @param[in] data CAN Socket 
  */ 
-void *can_thread();
+void *can_thread(void *data);
 
 /**
  * @brief Log an informational message.
@@ -573,7 +572,8 @@ char gMDNNumber[13] = {0,};
 /// @brief Active Mode
 uint8_t gMode = 0, gLcount = 0, gLFlag = 1;
 
-pthread_t cThread;
+timer_t CANTimerID;
+timer_t JSONTimerID;
 
 
 /*-----------------------------------------------------------*/
@@ -639,7 +639,6 @@ long map(long x, long in_min, long in_max, long out_min, long out_max)
 
 static void diff_can(struct can_frame frame)
 {
-    
 	switch(frame.can_id)
 	{
 		case CN7_P_GEAR_SFT:
@@ -758,6 +757,7 @@ static void process_can(struct can_frame *frame)
 {
 
 	int i = 0;
+
 	for(i = 0 ; i < P_IDS ; i++)
 	{
 		if(frame->can_id == cn7_data[i].ids)
@@ -785,16 +785,49 @@ static void receive_can(int *sck, struct can_frame *frame)
 	process_can(frame);
 }
 
-void *can_thread()
+static void timer_handler(int sig, siginfo_t *si, void *uc)
 {
+    timer_t *tidp;
+    tidp = si->si_value.sival_ptr;
     struct can_frame frame;
-
-    while(1)
+    if(*tidp == CANTimerID)
     {
-        
         receive_can(gSock, &frame);
-        usleep(1000);
     }
+}
+
+static int makeTimer(char *name, timer_t *timerID, int sec, int msec)
+{
+    struct sigevent te;
+    struct itimerspec its;
+    struct sigaction sa;  
+    int sigNo = SIGRTMIN;  
+   
+    /* Set up signal handler. */  
+    sa.sa_flags = SA_SIGINFO;  
+    sa.sa_sigaction = timer_handler;  
+    sigemptyset(&sa.sa_mask);  
+  
+    if (sigaction(sigNo, &sa, NULL) == -1)  
+    {  
+        printf("sigaction error\n");
+        return -1;  
+    }  
+   
+    /* Set and enable alarm */  
+    te.sigev_notify = SIGEV_SIGNAL;  
+    te.sigev_signo = sigNo;  
+    te.sigev_value.sival_ptr = timerID;  
+    timer_create(CLOCK_REALTIME, &te, timerID);  
+   
+    its.it_interval.tv_sec = sec;
+    its.it_interval.tv_nsec = msec * 1000000;  
+    its.it_value.tv_sec = sec;
+    
+    its.it_value.tv_nsec = msec * 1000000;
+    timer_settime(*timerID, 0, &its, NULL);  
+   
+    return 0;  
 }
 
 void initTopicFilter(char *t_name)
@@ -1542,7 +1575,6 @@ static void teardown( int x,
 
     close(*gSock);
     closeConnection( h );
-    pthread_detach(cThread);
     mosquitto_destroy( h->m );
     mosquitto_lib_cleanup();
 }
@@ -1617,7 +1649,7 @@ int main( int argc, char * argv[] )
 {
     handle_t h_, * h = &h_;
     time_t now;
-    int i = 0, sock = 0, ret = 0;
+    int i = 0, sock = 0;
 
     createUUIDStr();
     initHandle( h, 1 );
@@ -1640,12 +1672,8 @@ int main( int argc, char * argv[] )
     }
        
     //h->lastPrompt = time( NULL );
+    makeTimer("CAN Data Read", &CANTimerID, 0, 1);
 
-    ret = pthread_create(&cThread, NULL, can_thread, NULL);
-    if(ret < 0)
-    {
-        errx(1, "Thread create error : ");
-    }
     if(gMode == MODE_SUBSCRIBE)
         subscribe(h, TopicFilter[USER_PUBSUB]);
 
