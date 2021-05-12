@@ -97,4 +97,19 @@
 #define PROVISIONING_CC_LENGTH ((uint16_t) (sizeof(PROVISIONING_CERT_CREATE_TOPIC) - 1))
 #define PROVISIONING_TT_LENGTH ((uint16_t) (sizeof(PROVISIONING_TEMPLATE_TOPIC) - 1))
 
+#define P_IDS 7
+#define RPM 3
+#define SPEED 6
+#define TPS 5
+#define APS 6
+#define TURN_HOOD 2 // 08
+#define HOOD 2 // 02
+#define TURN_SIDE 7 // 40
+#define TRUNK_SEATBELT 1// 10 04
+#define HAZARD 4 // 02
+#define HEADLAMP 3 // 80
+#define SHIFTER 1
+#define COOLANT 1
+#define FOOTBRAKE 4 // 02 ON / 01 OFF
+
 #endif /* ifndef DEMO_CONFIG_H */
