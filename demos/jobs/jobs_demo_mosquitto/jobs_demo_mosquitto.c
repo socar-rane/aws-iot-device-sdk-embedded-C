@@ -1553,7 +1553,7 @@ void on_message( struct mosquitto * m,
                 
                 closeConnection(h);
                 //mosquitto_destroy(h->m);
-                changeConnectionInformation(h);
+                //changeConnectionInformation(h);
                 //mosquitto_destroy( h->m );
 
                 completeFlag[2] = true;
@@ -1719,7 +1719,7 @@ int main( int argc, char * argv[] )
     handle_t h_, * h = &h_;
     time_t now;
     int i = 0, sock = 0;
-    
+
     createUUIDStr();
     initHandle( h, 1 );
 
