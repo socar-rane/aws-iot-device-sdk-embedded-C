@@ -787,8 +787,6 @@ static void receive_can(int *sck, struct can_frame *frame)
 
 void *can_thread()
 {
-    timer_t *tidp;
-    tidp = si->si_value.sival_ptr;
     struct can_frame frame;
 
     while(1)
