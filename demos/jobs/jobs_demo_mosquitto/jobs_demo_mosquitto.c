@@ -793,7 +793,7 @@ void *can_thread()
     {
         printf("receive can\n");
         receive_can(gSock, &frame);
-        usleep(10000);
+        usleep(100000);
     }
 }
 
