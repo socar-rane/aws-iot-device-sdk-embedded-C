@@ -563,6 +563,8 @@ char gPrivateKey[64] = {0,};
 /// @brief Global MDN Number
 char gMDNNumber[13] = {0,};
 
+char buffer[2048] = {0,};
+
 /// @brief Active Mode
 uint8_t gMode = 0, gLcount = 0, gLFlag = 1;
 
@@ -783,9 +785,11 @@ static void receive_can(int *sck, struct can_frame *frame)
 
 static void json_handler()
 {
-    char temp[128] = {0,}, buffer[2048] = {0,}, t_buff[128] = {0,};
+    char temp[128] = {0,}, t_buff[128] = {0,};
     time_t rawtime;
     struct tm* timeinfo;
+
+    memset(buffer, 0, sizeof(char) * 2048);
 
     sprintf(temp, "{\n");
     strcpy(buffer,temp);
@@ -846,9 +850,7 @@ static void json_handler()
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    printf("JSON : \n%s\n", buffer);
-
-    publish(g_h, TopicFilter[UPSTREAM], buffer);
+    //printf("JSON : \n%s\n", buffer);
 }
 
 static void timer_handler(int sig, siginfo_t *si, void *uc)
@@ -1745,7 +1747,7 @@ int main( int argc, char * argv[] )
        
     //h->lastPrompt = time( NULL );
     makeTimer("CAN Data Read", &CANTimerID, 0, 5);
-    makeTimer("JSON Timer handler", &JSONTimerID, 3, 0);
+    makeTimer("JSON Handler", &JSONTimerID, 1, 0);
     if(gMode == MODE_SUBSCRIBE)
         subscribe(h, TopicFilter[USER_PUBSUB]);
 
@@ -1811,6 +1813,11 @@ int main( int argc, char * argv[] )
                     TopicFilterLength[DOWNSTREAM] = strlen(TopicFilter[DOWNSTREAM]);
     
                     completeFlag[2] = false;
+                    completeFlag[3] = true;
+                }
+                else if(completeFlag[3] == true)
+                {
+                    publish(h, TopicFilter[UPSTREAM], buffer);
                 }
             break; 
         }
