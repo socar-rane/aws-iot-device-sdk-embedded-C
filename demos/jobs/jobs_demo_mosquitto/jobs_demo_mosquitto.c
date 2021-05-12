@@ -228,7 +228,7 @@ static void on_connect( struct mosquitto * m,
  * @return true if a connection is established;
  * false otherwise
  */
-static bool connect( handle_t * h );
+static bool mqttConnect( handle_t * h );
 
 /**
  * @brief Disconnect from AWS IoT Core MQTT broker.
@@ -1191,7 +1191,7 @@ static void on_connect( struct mosquitto * m,
 
 /*-----------------------------------------------------------*/
 
-static bool connect( handle_t * h )
+static bool mqttConnect( handle_t * h )
 {
     int ret = MOSQ_ERR_SUCCESS;
     size_t i;
@@ -1611,7 +1611,7 @@ int main( int argc, char * argv[] )
 
     on_exit( teardown, h );
 
-    if( ( setup( h ) == false ) || ( connect( h ) == false ) )
+    if( ( setup( h ) == false ) || ( mqttConnect( h ) == false ) )
     {
         errx( 1, "fatal error" );
     }
@@ -1672,7 +1672,7 @@ int main( int argc, char * argv[] )
                     bool ret[2];
                     initHandle(h, 2);
                     ret[0] = setup(h);
-                    ret[1] = connect(h);
+                    ret[1] = mqttConnect(h);
                     if( ret[0] == false || ret[1] == false )
                     {
                         errx( 1, "fatal error" );
