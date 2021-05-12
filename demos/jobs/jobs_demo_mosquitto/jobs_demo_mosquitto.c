@@ -577,6 +577,61 @@ timer_t JSONTimerID;
 
 
 /*-----------------------------------------------------------*/
+
+static void can_frame_init()
+{
+	int i;
+
+	memset(&current_data, 0, sizeof(can_data_t));
+	for(i = 0 ; i < P_IDS ; i++)
+	{
+		memset(&cn7_data[i], 0, sizeof(can_data_t));
+		memset(&b_data[i], 0, sizeof(can_data_t));
+	}
+	
+	cn7_data[0].ids = CN7_P_GEAR_SFT;
+	cn7_data[1].ids = CN7_P_STEERING;
+	cn7_data[2].ids = CN7_P_RPM_SPEED;
+	cn7_data[3].ids = CN7_P_PEDAL_POS;
+	cn7_data[4].ids = CN7_P_LIGHT_TH;
+	cn7_data[5].ids = CN7_P_WIPER;
+	cn7_data[6].ids = CN7_P_SOC;
+}
+
+static int can_init(int *sck, char *ifname)
+{
+	struct sockaddr_can addr;
+	struct ifreq ifr;
+
+	if((*sck = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0)
+	{
+		perror("CAN Socket Error\n");
+		return 1;
+	}
+
+	memset(ifr.ifr_name, 0, sizeof(ifr.ifr_name));
+	strcpy(ifr.ifr_name, ifname);
+	
+	if(ioctl(*sck, SIOCGIFINDEX, &ifr) < 0)
+	{
+		perror("SIOCGIFINDEX Error\n");
+		return 1;
+	}
+
+	memset(&addr, 0, sizeof(addr));
+	addr.can_family = AF_CAN;
+	addr.can_ifindex = ifr.ifr_ifindex;
+
+	if(bind(*sck, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+	{
+		perror("Bind Error\n");
+		return 1;
+	}
+
+//	setsockopt(*sck, SOL_CAN_RAW, CAN_RAW_RECV_OWN_MSGS, &rfilter, sizeof(rfilter));
+	return 0;
+}
+
 long map(long x, long in_min, long in_max, long out_min, long out_max)
 {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
