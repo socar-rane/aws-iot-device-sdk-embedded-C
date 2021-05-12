@@ -639,7 +639,7 @@ long map(long x, long in_min, long in_max, long out_min, long out_max)
 
 static void diff_can(struct can_frame frame)
 {
-    printf("diff can\n");
+    
 	switch(frame.can_id)
 	{
 		case CN7_P_GEAR_SFT:
@@ -758,7 +758,6 @@ static void process_can(struct can_frame *frame)
 {
 
 	int i = 0;
-    printf("process can\n");
 	for(i = 0 ; i < P_IDS ; i++)
 	{
 		if(frame->can_id == cn7_data[i].ids)
@@ -794,7 +793,7 @@ void *can_thread()
     {
         
         receive_can(gSock, &frame);
-        usleep(100000);
+        usleep(1000);
     }
 }
 
@@ -1618,7 +1617,6 @@ int main( int argc, char * argv[] )
 {
     handle_t h_, * h = &h_;
     time_t now;
-    struct can_frame frame;
     int i = 0, sock = 0, ret = 0;
 
     createUUIDStr();
@@ -1643,11 +1641,11 @@ int main( int argc, char * argv[] )
        
     //h->lastPrompt = time( NULL );
 
-    //ret = pthread_create(&cThread, NULL, can_thread, NULL);
-    //if(ret < 0)
-    //{
-    //    errx(1, "Thread create error : ");
-    //}
+    ret = pthread_create(&cThread, NULL, can_thread, NULL);
+    if(ret < 0)
+    {
+        errx(1, "Thread create error : ");
+    }
     if(gMode == MODE_SUBSCRIBE)
         subscribe(h, TopicFilter[USER_PUBSUB]);
 
@@ -1727,10 +1725,10 @@ int main( int argc, char * argv[] )
             {
                 errx( 1, "mosquitto_loop: %s", mosquitto_strerror( m_ret ) );
             }
+
             //now = time( NULL );
         }
         printf("count sleep\n");
-        receive_can(gSock, &frame);
         sleep(1);
     }
 
