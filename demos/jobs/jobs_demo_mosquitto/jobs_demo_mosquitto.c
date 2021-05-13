@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <fcntl.h>>
 
 /* POSIX includes. */
 #include <signal.h>
