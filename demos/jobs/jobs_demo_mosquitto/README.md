@@ -64,21 +64,24 @@ cp <Claim 인증서 경로> ~/Workspace/aws-iot-device-sdk-embedded-C/build/bin/
 -l / --loop     : Publish 메시지를 전송할 횟수 (0 : Forever / not 0 : Loop count)
 -m / --mode     : <1 : Publish / 2 : Subscribe / 3 : Fleet Provisioning>
 -M / --message  : Publish Payload 메시지 문자열
--n / --name     : 클라이언트 ID 
 -N / --mdn      : MDN 번호
 -t / --topic    : Publish / Subscribe 할 Topic 문자열
 
 1. Publish 방법
 
-./jobs_demo_mosquitto -c <Certificate ID> -d <인증서 경로> -h <Endpoint Address> -m 1 -M "{\"test\":\"publish\"}" -n "sts-<mdn number>" -t <Publish Topic> -l <loop count>
+./jobs_demo_mosquitto -c <Certificate ID> -d <인증서 경로> -h <Endpoint Address> -m 1 -M "{\"test\":\"publish\"}" -N <mdn number> -t <Publish Topic> -l <loop count>
 
 2. Subscribe 방법
 
-./jobs_demo_mosquitto -c <Certificate ID> -d <인증서 경로> -h <Endpoint Address> -m 2 -n "sts-<mdn number>" -t <Subscribe Topic> 
+./jobs_demo_mosquitto -c <Certificate ID> -d <인증서 경로> -h <Endpoint Address> -m 2 -N <mdn number> -t <Subscribe Topic> 
 
 3. Fleet Provisioning 방법
 
-./jobs_demo_mosquitto -c <Certificate ID> -d <인증서 경로> -h <Endpoint Address> -m 3 -n <Client ID> -f <Provisioning Template Name> -N <MDN Number>
+./jobs_demo_mosquitto -c <Certificate ID> -d <인증서 경로> -h <Endpoint Address> -m 3-f <Provisioning Template Name> -N <MDN Number>
+
+4. UpDownstream 방법
+
+./jobs_demo_mosquitto -c <Certificate ID> -d <인증서 경로> -h <Endpoint Address> -m 4 -N <MDN Number>
 ```
 
 # ------- 아래 문서는 잠시 보류합니다!!! ----------
