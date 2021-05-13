@@ -417,10 +417,10 @@ static void receive_can(int *sck, struct can_frame *frame);
 static void mqtt_handler();
 
 /// @brief Create Timer handler (MQTT, JSON, CAN)
-static int makeTimer(char *name, timer_t *timerID, int sec, int msec)
+static int makeTimer(char *name, timer_t *timerID, int sec, int msec);
 
 /// @brief Initialize timer handler function
-static void timer_handler(int sig, siginfo_t *si, void *uc)
+static void timer_handler(int sig, siginfo_t *si, void *uc);
 
 /// @brief Create Report JSON String
 static void json_handler();
