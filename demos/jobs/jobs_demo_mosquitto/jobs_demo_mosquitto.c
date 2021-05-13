@@ -1754,7 +1754,9 @@ static void teardown( int x,
         free( h->jobid );
     }
 
+    #if RANE_CAN_TEST
     close(*gSock);
+    #endif
     closeConnection( h );
     mosquitto_destroy( h->m );
     mosquitto_lib_cleanup();
