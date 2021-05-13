@@ -853,7 +853,8 @@ static void json_handler()
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    printf("JSON Length : \n%s\n", (buffer));
+    //printf("JSON Length : \n%s\n", (buffer));
+    
     
     if(b_Loop < 30)
     {
@@ -864,10 +865,11 @@ static void json_handler()
     {
         b_Loop = 0;
         strcpy(out_buffer[b_Loop], buffer);
-        FILE *fp = fopen("./car_data.bin", "w");
-        fwrite(out_buffer, sizeof(out_buffer), 1, fp);
-        fclose(fp);
+        int fd = open("./car_data.bin", "w");
+        write(fd, out_buffer, sizeof(out_buffer));
+        close(fd);
     }
+    
     
 
 }
