@@ -852,8 +852,7 @@ static void json_handler()
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-
-    printf("JSON Length : %d\n", strlen(buffer));
+    //printf("JSON : \n%s\n", buffer);
 }
 
 static void timer_handler(int sig, siginfo_t *si, void *uc)
@@ -1651,9 +1650,8 @@ static void teardown( int x,
     {
         free( h->jobid );
     }
-#if 1
+
     close(*gSock);
-#endif
     closeConnection( h );
     mosquitto_destroy( h->m );
     mosquitto_lib_cleanup();
@@ -1782,7 +1780,7 @@ static void mqtt_handler()
             }
             else if(completeFlag[3] == true)
             {
-                //publish(g_h, TopicFilter[UPSTREAM], buffer);
+                publish(g_h, TopicFilter[UPSTREAM], buffer);
             }
         break; 
     }
@@ -1806,11 +1804,9 @@ int main( int argc, char * argv[] )
     createUUIDStr();
     initHandle( h, 1 );
 
-#if 1
     can_frame_init();
     can_init(&sock, "can0");
     gSock = &sock;
-#endif
 
     g_h = h;
     
@@ -1828,10 +1824,8 @@ int main( int argc, char * argv[] )
     }
        
     //h->lastPrompt = time( NULL );
-#if 1
     makeTimer("CAN Data Read", &CANTimerID, 0, 5);
     makeTimer("JSON Handler", &JSONTimerID, 1, 0);
-#endif
     makeTimer("Mqtt Handler", &MqttTimerID, 1, 0);
     if(gMode == MODE_SUBSCRIBE)
         subscribe(h, TopicFilter[USER_PUBSUB]);
