@@ -1794,7 +1794,7 @@ static void mqtt_handler()
             }
             else if(completeFlag[3] == true)
             {
-                //publish(g_h, TopicFilter[UPSTREAM], buffer);
+                publish(g_h, TopicFilter[UPSTREAM], buffer);
             }
         break; 
     }
