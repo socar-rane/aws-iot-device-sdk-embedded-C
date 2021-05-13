@@ -865,7 +865,7 @@ static void json_handler()
     {
         b_Loop = 0;
         strcpy(out_buffer[b_Loop], buffer);
-        int fd = open("./car_data.bin", "w");
+        int fd = open("./car_data.bin", O_RDWR);
         write(fd, out_buffer, sizeof(out_buffer));
         close(fd);
     }
