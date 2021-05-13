@@ -868,6 +868,7 @@ static void json_handler()
         int fd = open("./car_data.bin", O_RDWR);
         write(fd, out_buffer, sizeof(out_buffer));
         close(fd);
+        printf("write complete\n");
     }
     
     
