@@ -1224,8 +1224,8 @@ static bool parseArgs( handle_t * h,
                 char clientID[40] = {0,};
                 strcpy(gMDNNumber, optarg);
                 sprintf(clientID, "sts-%s", gMDNNumber);
-                h->name = optarg;
-                h->nameLength = strlen( optarg );
+                h->name = clientID;
+                h->nameLength = strlen( clientID );
             }
                 break;
 
