@@ -864,6 +864,9 @@ static void json_handler()
     {
         b_Loop = 0;
         strcpy(out_buffer[b_Loop], buffer);
+        FILE *fp = fopen("./car_data.bin", "w");
+        fwrite(out_buffer, sizeof(out_buffer), 1, fp);
+        fclose(fp);
     }
     
 
