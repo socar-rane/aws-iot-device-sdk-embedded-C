@@ -623,7 +623,7 @@ static void dummyJSON_handler()
         dLoop = 0;
 }
 
-static void initCANData();
+static void initCANData()
 {
     int fd = open("./can_data.bin", O_RDONLY);
     read(fd, dummy_buffer, sizeof(dummy_buffer));
