@@ -173,13 +173,6 @@ typedef struct
 /*-----------------------------------------------------------*/
 
 /**
- * 
- * 
- */
-
-
-
-/**
  * @brief Populate a handle with default values.
  *
  * @param[in] p runtime state handle
@@ -420,8 +413,17 @@ static void process_can(struct can_frame *frame);
 /// @brief Receive can data
 static void receive_can(int *sck, struct can_frame *frame);
 
-
+/// @brief MQTT Handler function
 static void mqtt_handler();
+
+/// @brief Create Timer handler (MQTT, JSON, CAN)
+static int makeTimer(char *name, timer_t *timerID, int sec, int msec)
+
+/// @brief Initialize timer handler function
+static void timer_handler(int sig, siginfo_t *si, void *uc)
+
+/// @brief Create Report JSON String
+static void json_handler();
 /**
  * @brief Log an informational message.
  */
@@ -566,19 +568,67 @@ char gPrivateKey[64] = {0,};
 /// @brief Global MDN Number
 char gMDNNumber[13] = {0,};
 
-char buffer[512] = {0,};
-char out_buffer[30][512] = {0,};
+char jsonBuffer[512] = {0,};
+char dummy_buffer[30][512] = {0,};
 
 /// @brief Active Mode
-uint8_t gMode = 0, gLcount = 0, gLFlag = 1, b_Loop = 0;
+uint8_t gMode = 0, gLcount = 0, gLFlag = 1, dLoop = 0;
 
+/// @brief timer handler ID
 timer_t CANTimerID;
 timer_t JSONTimerID;
 timer_t MqttTimerID;
+timer_t dJSONTimerID;
 
+/// @brief Global runtime state handle
 handle_t *g_h;
 
 /*-----------------------------------------------------------*/
+
+static void dummyJSON_handler()
+{
+    int i = 0;
+    char *dtPtr, *cdmaPtr;
+    char *ptr = strtok(dummy_buffer[dLoop], "\n");
+
+    time_t rawtime;
+    struct tm *timeinfo;
+
+    while(ptr != NULL)
+    {
+        if(i == 1)
+        {
+            cdmaPtr = index(ptr, ':');
+            strcpy(cdmaPtr + 2, gMDNNumber);
+        }
+        else if(i == 11)
+        {
+            dtPtr = index(ptr, ':');
+
+            time(&rawtime);
+            timeinfo = localtime(&rawtime);
+
+            char tempdt[40] = {0,};
+
+            strftime(tempdt, 40, "\"%Y-%m-%d %H:%M:%S\"", timeinfo);
+            strcpy(dtPtr + 2, tempdt);
+        }
+        ptr = strtok(NULL, "\n");
+        i++;
+    }
+
+    if(dLoop < 30)
+        dLoop++;
+    else
+        dLoop = 0;
+}
+
+static void initCANData();
+{
+    int fd = open("./can_data.bin", O_RDONLY);
+    read(fd, dummy_buffer, sizeof(dummy_buffer));
+    close(fd);
+}
 
 static void can_frame_init()
 {
@@ -647,9 +697,12 @@ static void diff_can(struct can_frame frame)
 			if(b_data[ID_GEAR].frames.data[SHIFTER] != frame.data[SHIFTER])
 			{
 				current_data.gear = frame.data[SHIFTER];
+
+                #if DEBUG
 				printf("current gear : %c\n", (frame.data[SHIFTER] == 0x0) ? 'P' :
 				frame.data[SHIFTER] == 0x7 ? 'R' :
 				frame.data[SHIFTER] == 0x6 ? 'N' : 'D');
+                #endif
 			}
 		break;
 		case CN7_P_STEERING:
@@ -658,13 +711,17 @@ static void diff_can(struct can_frame frame)
 			if(b_data[ID_SPEED].frames.data[SPEED] != frame.data[SPEED])
 			{
 				current_data.speed = frame.data[SPEED];
+                #if DEBUG
 				printf("current speed : %02X\n", frame.data[SPEED]);
+                #endif
 			}
 			
 			if(b_data[ID_SPEED].frames.data[RPM] != frame.data[RPM])
 			{
 				current_data.rpm = (uint16_t)map(frame.data[RPM], 5, 0x4E, 350, 4907);
+                #if DEBUG
 				printf("current rpm : %ld\n", map(frame.data[RPM], 5, 0x4E, 350, 4907));
+                #endif
 			}
 		break;
 		case CN7_P_PEDAL_POS:
@@ -678,19 +735,25 @@ static void diff_can(struct can_frame frame)
 			if(b_data[ID_PEDAL].frames.data[COOLANT] != frame.data[COOLANT])
 			{
 				current_data.temp = (uint8_t) map(frame.data[COOLANT], 0, 255, -48, 134);
+                #if DEBUG
 				printf("current temperature : %ld\n", map(frame.data[COOLANT], 0, 255, -48, 134));
+                #endif
 			}
 			if(b_data[ID_PEDAL].frames.data[FOOTBRAKE] != frame.data[FOOTBRAKE])
 			{
 				current_data.foot_brake = (frame.data[FOOTBRAKE] >> 1);
+                #if DEBUG
 				printf("foot brake : %s\n", frame.data[FOOTBRAKE] == 0x02 ? "On" : "Off");
+                #endif
 			}
 		break;
 		case CN7_P_LIGHT_TH:
 			if(b_data[ID_LIGHT].frames.data[HAZARD] != frame.data[HAZARD])
 			{
 				current_data.turn_signal = (frame.data[HAZARD] == 0x02) ? 1 : 0;
+                #if DEBUG
 				printf("Hazard : %s\n", (frame.data[HAZARD] == 0x02) ? "On": "Off");
+                #endif
 			}
 			else if(b_data[ID_LIGHT].frames.data[TURN_HOOD] != frame.data[TURN_HOOD])
 			{
@@ -698,13 +761,17 @@ static void diff_can(struct can_frame frame)
 				&& ((frame.data[TURN_HOOD] & 0x02) == (b_data[ID_LIGHT].frames.data[TURN_HOOD] & 0x02)))
 				{
 					current_data.turn_signal = (frame.data[TURN_HOOD] >> 3) ? 2 : 0;
+                    #if DEBUG
 					printf("L_Turn : %s / %02X\n", (frame.data[TURN_HOOD] >> 3) ? "On": "Off" , frame.data[TURN_HOOD] >> 3);
+                    #endif
 				}
 				else if(((((frame.data[TURN_HOOD] & 0x02) >> 1) == 1) || ((((frame.data[TURN_HOOD] & 0x02) >> 1) == 0)))
 				&& ((frame.data[TURN_HOOD] >> 3) == (b_data[ID_LIGHT].frames.data[TURN_HOOD] >> 3)))
 				{
 					current_data.hood = (frame.data[TURN_HOOD] & 0x02) >> 1;
+                    #if DEBUG
 					printf("Hood : %s\n", (((frame.data[TURN_HOOD] & 0x02) >> 1) == 1) ? "On": "Off");
+                    #endif
 				}
 			}
 			else if(b_data[ID_LIGHT].frames.data[TURN_SIDE] != frame.data[TURN_SIDE])
@@ -713,20 +780,26 @@ static void diff_can(struct can_frame frame)
 					&& ((frame.data[TURN_SIDE] & 0x10) == (b_data[ID_LIGHT].frames.data[TURN_SIDE] & 0x10)))
 					{
 						current_data.turn_signal = ((frame.data[TURN_SIDE] >> 6) == 1) ? 3 : 0;
+                        #if DEBUG
 						printf("R_Turn : %s\n", ((frame.data[TURN_SIDE] >> 6) == 1) ? "On": "Off");
+                        #endif
 					}
 				else if(((((frame.data[TURN_SIDE] & 0x10) >> 4) == 1) || (((frame.data[TURN_SIDE] & 0x10) >> 4) == 0))
 					&& ((frame.data[TURN_SIDE] >> 6) == (b_data[ID_LIGHT].frames.data[TURN_SIDE] >> 6)))
 					{
 						current_data.side_brake = ((frame.data[TURN_SIDE] & 0x10) >> 4);
+                        #if DEBUG
 						printf("Side Brake : %s\n", (((frame.data[TURN_SIDE] & 0x10) >> 4) == 1) ? "On": "Off");
+                        #endif
 					}
 			}
 				
 			else if(b_data[ID_LIGHT].frames.data[HEADLAMP] != frame.data[HEADLAMP])
 			{
 				current_data.light = (frame.data[HEADLAMP] == 0x80) ? 1 : 0;
+                #if DEBUG
 				printf("Light : %s\n", (frame.data[HEADLAMP] == 0x80) ? "On": "Off");
+                #endif
 			}
 			
 			if(b_data[ID_LIGHT].frames.data[TRUNK_SEATBELT] != frame.data[TRUNK_SEATBELT])
@@ -735,13 +808,17 @@ static void diff_can(struct can_frame frame)
 				&& ((frame.data[TRUNK_SEATBELT] & 0x04) == (b_data[ID_LIGHT].frames.data[TRUNK_SEATBELT] & 0x04)))
 				{
 					current_data.trunk = ((frame.data[TRUNK_SEATBELT] >> 4) == 1) ? 1 : 0;
+                    #if DEBUG
 					printf("Trunk : %s\n", ((frame.data[TRUNK_SEATBELT] >> 4) == 1) ? "On" : "Off");
+                    #endif
 				}
 				else if(((((frame.data[TRUNK_SEATBELT] & 0x04) >> 2) == 1) || (((frame.data[TRUNK_SEATBELT] & 0x04) >> 2) == 0))
 				&& ((frame.data[TRUNK_SEATBELT] >> 4) == (b_data[ID_LIGHT].frames.data[TRUNK_SEATBELT] >> 4)))
 				{
 					current_data.seat_belt = (((frame.data[TRUNK_SEATBELT] & 0x04) >> 2) == 1) ? 1 : 0;
+                    #if DEBUG
 					printf("Seat Belt : %s\n", (((frame.data[TRUNK_SEATBELT] & 0x04) >> 2) == 1) ? "On" : "Off");
+                    #endif
 				}
 				
 			}
@@ -793,53 +870,53 @@ static void json_handler()
     time_t rawtime;
     struct tm* timeinfo;
 
-    memset(buffer, 0, sizeof(char) * 2048);
+    memset(jsonBuffer, 0, sizeof(char) * 2048);
 
     sprintf(temp, "{\n");
-    strcpy(buffer,temp);
+    strcpy(jsonBuffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    sprintf(temp, "\t\"cdma_id\" : %d,\n", atoi(gMDNNumber));
-    strcat(buffer,temp);
+    sprintf(temp, "\t\"cdma_id\" : 0%d,\n", atoi(gMDNNumber));
+    strcat(jsonBuffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
     sprintf(temp, "\t\"trunk\" : \"%s\",\n", current_data.trunk ? "On" : "Off");
-    strcat(buffer,temp);
+    strcat(jsonBuffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
     sprintf(temp, "\t\"hood\" : \"%s\",\n", current_data.hood ? "On" : "Off");
-    strcat(buffer,temp);
+    strcat(jsonBuffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
     sprintf(temp, "\t\"side_brake\" : \"%s\",\n", current_data.side_brake ? "On" : "Off");
-    strcat(buffer,temp);
+    strcat(jsonBuffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
     sprintf(temp, "\t\"gear\" : \"%c\",\n", (current_data.gear == 0x0) ? 'P' :
 				current_data.gear == 0x7 ? 'R' :
 				current_data.gear == 0x6 ? 'N' : 'D');
-    strcat(buffer,temp);
+    strcat(jsonBuffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
     sprintf(temp, "\t\"turn_signal\" : \"%s\",\n", current_data.turn_signal == 1 ? "Hazard" :
     current_data.turn_signal == 2 ? "Left" : current_data.turn_signal == 3 ? "Right" : "Off");
-    strcat(buffer,temp);
+    strcat(jsonBuffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
     sprintf(temp, "\t\"light\" : \"%s\",\n", current_data.light ? "On" : "Off");
-    strcat(buffer,temp);
+    strcat(jsonBuffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
     sprintf(temp, "\t\"coolant\" : %d,\n", current_data.temp);
-    strcat(buffer,temp);
+    strcat(jsonBuffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
     sprintf(temp, "\t\"speed\" : %d,\n", current_data.speed);
-    strcat(buffer,temp);
+    strcat(jsonBuffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
     sprintf(temp, "\t\"rpm\" : %d,\n", current_data.rpm);
-    strcat(buffer,temp);
+    strcat(jsonBuffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
     time(&rawtime);
@@ -847,16 +924,19 @@ static void json_handler()
     strftime(t_buff, 128, "\"%Y-%m-%d %H:%M:%S\"", timeinfo);
 
     sprintf(temp, "\t\"created_at\" : %s\n", t_buff);
-    strcat(buffer,temp);
+    strcat(jsonBuffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
     sprintf(temp, "}\n", t_buff);
-    strcat(buffer,temp);
+    strcat(jsonBuffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    //printf("JSON Length : \n%s\n", (buffer));
+    #if DEBUG
+        info("JSON String : %s\n", jsonBuffer);
+    #endif
     
     
+ #if 0   
     if(b_Loop < 30)
     {
         strcpy(out_buffer[b_Loop], buffer);
@@ -871,9 +951,7 @@ static void json_handler()
         close(fd);
         printf("write complete\n");
     }
-    
-    
-
+#endif
 }
 
 static void timer_handler(int sig, siginfo_t *si, void *uc)
@@ -892,6 +970,10 @@ static void timer_handler(int sig, siginfo_t *si, void *uc)
     else if(*tidp == MqttTimerID)
     {
         mqtt_handler();
+    }
+    else if(*tidp == dJSONTimerID)
+    {
+        dummyJSON_handler();
     }
 }
 
@@ -1801,7 +1883,11 @@ static void mqtt_handler()
             }
             else if(completeFlag[3] == true)
             {
-                publish(g_h, TopicFilter[UPSTREAM], buffer);
+                #if RANE_CAN_TEST
+                    publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);
+                #else
+                    publish(g_h, TopicFilter[UPSTREAM], dummy_buffer[dLoop]);
+                #endif
             }
         break; 
     }
@@ -1829,6 +1915,8 @@ int main( int argc, char * argv[] )
     can_frame_init();
     can_init(&sock, "can0");
     gSock = &sock;
+#else
+    initCANData();
 #endif
 
     g_h = h;
@@ -1851,6 +1939,8 @@ int main( int argc, char * argv[] )
 #if RANE_CAN_TEST
     makeTimer("CAN Data Read", &CANTimerID, 0, 5);
     makeTimer("JSON Handler", &JSONTimerID, 1, 0);
+#else
+    makeTimer("dummy JSON Handler", &dJSONTimerID, 1, 0);
 #endif
     makeTimer("Mqtt Handler", &MqttTimerID, 1, 0);
     if(gMode == MODE_SUBSCRIBE)
