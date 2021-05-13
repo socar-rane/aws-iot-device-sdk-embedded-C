@@ -79,7 +79,7 @@ static void usage( const char * programName )
              "-d : Cert file Directory\n"
              "-f : Fleet Provisioning Template Name\n"
              "-n : Client ID\n"
-             "-m : select mode. 1: Publish / 2: Subscribe / 3: Fleet Provisioning\n"
+             "-m : select mode. 1: Publish / 2: Subscribe / 3: Fleet Provisioning / 4: UpDownstream Test\n"
              "-M : Publish Message.\n"
              "-N : MDN Number\n"
              "-t : Publish / Subscribe Topic\n"
@@ -1158,7 +1158,7 @@ static bool parseArgs( handle_t * h,
             { NULL,        0,                 NULL, 0   }
         };
 
-        c = getopt_long( argc, argv, "c:d:h:n:l:m:n:f:M:N:t:?",
+        c = getopt_long( argc, argv, "c:d:h:n:l:m:f:M:N:t:?",
                          long_options, &option_index );
 
         if( c == -1 )
@@ -1214,18 +1214,19 @@ static bool parseArgs( handle_t * h,
                 gMode = atoi(optarg);
                 break;
 
-            case 'n':
-                h->name = optarg;
-                h->nameLength = strlen( optarg );
-                break;
-
             case 'M':
                 strcpy(MqttExMessage[3], optarg);
                 MqttExMessageLength[3] = strlen(MqttExMessage[3]);
                 break;
 
             case 'N':
+            {
+                char clientID[40] = {0,};
                 strcpy(gMDNNumber, optarg);
+                sprintf(clientID, "sts-%s", gMDNNumber);
+                h->name = optarg;
+                h->nameLength = strlen( optarg );
+            }
                 break;
 
             case 't':
@@ -1892,6 +1893,9 @@ static void mqtt_handler()
                 #endif
             }
         break; 
+        case MODE_UPDOWN_STREAM:
+            publish(g_h, TopicFilter[UPSTREAM], dummy_buffer[dLoop]);
+        break;
     }
     {
         m_ret = mosquitto_loop( g_h->m, MQTT_WAIT_TIME, 1 );
@@ -1955,6 +1959,15 @@ int main( int argc, char * argv[] )
                     errx( 1, "fatal error" );
                 }
                 completeFlag[0] = true; 
+    }
+    else if(gMode == MODE_UPDOWN_STREAM)
+    {
+        sprintf(TopicFilter[DOWNSTREAM], DEVICE_DOWNSTREAM_TOPIC, gClientId);
+        TopicFilterLength[DOWNSTREAM] = strlen(TopicFilter[DOWNSTREAM]);
+        subscribe(g_h, TopicFilter[DOWNSTREAM]);
+
+        sprintf(TopicFilter[UPSTREAM], DEVICE_UPSTREAM_TOPIC, gClientId);
+        TopicFilterLength[UPSTREAM] = strlen(TopicFilter[UPSTREAM]);
     }
 
     while(1)
