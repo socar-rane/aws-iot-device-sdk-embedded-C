@@ -50,7 +50,7 @@ cp <Claim 인증서 경로> ~/Workspace/aws-iot-device-sdk-embedded-C/build/bin/
 # 실행 방법은 아래를 참고하세요
 ```
 
-## Fleet Provisioning 실행방법
+## jobs_demo_mosquitto 실행방법
 
 ```sh
 ./jobs_demo_mosquitto 
