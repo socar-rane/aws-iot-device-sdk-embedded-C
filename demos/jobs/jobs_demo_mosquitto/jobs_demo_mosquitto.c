@@ -1651,7 +1651,7 @@ static void teardown( int x,
     {
         free( h->jobid );
     }
-#if RANE_CAN_TEST
+#if 1
     close(*gSock);
 #endif
     closeConnection( h );
@@ -1806,7 +1806,7 @@ int main( int argc, char * argv[] )
     createUUIDStr();
     initHandle( h, 1 );
 
-#if RANE_CAN_TEST
+#if 1
     can_frame_init();
     can_init(&sock, "can0");
     gSock = &sock;
@@ -1828,7 +1828,7 @@ int main( int argc, char * argv[] )
     }
        
     //h->lastPrompt = time( NULL );
-#if RANE_CAN_TEST
+#if 1
     makeTimer("CAN Data Read", &CANTimerID, 0, 5);
     makeTimer("JSON Handler", &JSONTimerID, 1, 0);
 #endif
