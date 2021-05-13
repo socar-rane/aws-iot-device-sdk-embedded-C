@@ -1221,10 +1221,10 @@ static bool parseArgs( handle_t * h,
 
             case 'N':
             {
-                char clientID[40] = {0,};
+                char *clientID = malloc(sizeof(char)*40);
                 strcpy(gMDNNumber, optarg);
                 sprintf(clientID, "sts-%s", gMDNNumber);
-                strcpy(h->name, clientID);
+                h->name = clientID;
                 h->nameLength = strlen( clientID );
             }
                 break;
