@@ -565,10 +565,11 @@ char gPrivateKey[64] = {0,};
 /// @brief Global MDN Number
 char gMDNNumber[13] = {0,};
 
-char buffer[2048] = {0,};
+char buffer[512] = {0,};
+char out_buffer[30][512] = {0,};
 
 /// @brief Active Mode
-uint8_t gMode = 0, gLcount = 0, gLFlag = 1;
+uint8_t gMode = 0, gLcount = 0, gLFlag = 1, b_Loop = 0;
 
 timer_t CANTimerID;
 timer_t JSONTimerID;
@@ -852,7 +853,20 @@ static void json_handler()
     strcat(buffer,temp);
     memset(temp, 0, sizeof(char) * 128);
 
-    printf("JSON Length : %d\n", strlen(buffer));
+    printf("JSON Length : \n%s\n", (buffer));
+    
+    if(b_Loop < 30)
+    {
+        strcpy(out_buffer[b_Loop], buffer);
+        b_Loop++;
+    }
+    else
+    {
+        b_Loop = 0;
+        strcpy(out_buffer[b_Loop], buffer);
+    }
+    
+
 }
 
 static void timer_handler(int sig, siginfo_t *si, void *uc)
