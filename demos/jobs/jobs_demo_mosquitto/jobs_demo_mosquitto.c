@@ -1962,6 +1962,7 @@ int main( int argc, char * argv[] )
     }
     else if(gMode == MODE_UPDOWN_STREAM)
     {
+        sprintf(gClientId, "sts-%s", gMDNNumber);
         sprintf(TopicFilter[DOWNSTREAM], DEVICE_DOWNSTREAM_TOPIC, gClientId);
         TopicFilterLength[DOWNSTREAM] = strlen(TopicFilter[DOWNSTREAM]);
         subscribe(g_h, TopicFilter[DOWNSTREAM]);
