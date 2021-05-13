@@ -111,5 +111,5 @@
 #define SHIFTER 1
 #define COOLANT 1
 #define FOOTBRAKE 4 // 02 ON / 01 OFF
-
+#define RANE_CAN_TEST 1
 #endif /* ifndef DEMO_CONFIG_H */
