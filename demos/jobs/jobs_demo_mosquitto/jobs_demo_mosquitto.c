@@ -504,7 +504,7 @@ can_data_t cn7_data[P_IDS], b_data[P_IDS];
  * @brief Global data set
  */ 
 data_set_t current_data;
-data_set_t dummy_data[30];
+
 /**
  * @brief Initialize Topic name
  */
@@ -569,7 +569,7 @@ char gPrivateKey[64] = {0,};
 char gMDNNumber[13] = {0,};
 
 char jsonBuffer[512] = {0,};
-
+char dummy_buffer[30][512] = {0,};
 
 /// @brief Active Mode
 uint8_t gMode = 0, gLcount = 0, gLFlag = 1, dLoop = 0;
@@ -584,7 +584,7 @@ timer_t dJSONTimerID;
 handle_t *g_h;
 
 /*-----------------------------------------------------------*/
-#if 0
+
 static void dummyJSON_handler()
 {
     int i = 0;
@@ -622,15 +622,13 @@ static void dummyJSON_handler()
     else
         dLoop = 0;
 }
-#endif
-#if 0
+
 static void initCANData()
 {
     int fd = open("./can_data.bin", O_RDONLY);
     read(fd, dummy_buffer, sizeof(dummy_buffer));
     close(fd);
 }
-#endif
 
 static void can_frame_init()
 {
@@ -938,21 +936,19 @@ static void json_handler()
     #endif
     
     
- #if 1
-    if(dLoop < 30)
+ #if 0   
+    if(b_Loop < 30)
     {
-        dummy_data[dLoop] = current_data;
-        dLoop++;
+        strcpy(out_buffer[b_Loop], buffer);
+        b_Loop++;
     }
     else
     {
-        dLoop = 0;
-        dummy_data[dLoop] = current_data;
-        /*
+        b_Loop = 0;
+        strcpy(out_buffer[b_Loop], buffer);
         int fd = open("./car_data.bin", O_RDWR);
         write(fd, out_buffer, sizeof(out_buffer));
         close(fd);
-        */
         printf("write complete\n");
     }
 #endif
