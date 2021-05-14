@@ -504,6 +504,7 @@ can_data_t cn7_data[P_IDS], b_data[P_IDS];
  * @brief Global data set
  */ 
 data_set_t current_data;
+data_set_t dummy_data[30];
 
 /**
  * @brief Initialize Topic name
@@ -569,7 +570,6 @@ char gPrivateKey[64] = {0,};
 char gMDNNumber[13] = {0,};
 
 char jsonBuffer[512] = {0,};
-char dummy_buffer[30][512] = {0,};
 
 /// @brief Active Mode
 uint8_t gMode = 0, gLcount = 0, gLFlag = 1, dLoop = 0;
@@ -584,61 +584,6 @@ timer_t dJSONTimerID;
 handle_t *g_h;
 
 /*-----------------------------------------------------------*/
-
-static void dummyJSON_handler()
-{
-    int i = 0;
-    char *dtPtr, *cdmaPtr;
-    char *ptr = strtok(dummy_buffer[dLoop], "\n");
-
-    time_t rawtime;
-    struct tm *timeinfo;
-
-    while(ptr != NULL)
-    {
-        if(i == 1)
-        {
-            cdmaPtr = index(ptr, ':');
-            strcpy(cdmaPtr + 2, gMDNNumber);
-        }
-        else if(i == 11)
-        {
-            dtPtr = index(ptr, ':');
-
-            time(&rawtime);
-            timeinfo = localtime(&rawtime);
-
-            char tempdt[40] = {0,};
-
-            strftime(tempdt, 40, "\"%Y-%m-%d %H:%M:%S\"", timeinfo);
-            strcpy(dtPtr + 2, tempdt);
-        }
-        ptr = strtok(NULL, "\n");
-        i++;
-    }
-
-    info("dummy JSON Handler / %d : %s\n", dLoop, dummy_buffer[dLoop]);
-
-    if(dLoop < 30)
-        dLoop++;
-    else
-        dLoop = 0;
-}
-
-static void initCANData()
-{
-    char can_buffer[30][512] = {0,};
-    int fd = open("./car_data.bin", O_RDONLY);
-    read(fd, can_buffer, sizeof(can_buffer));
-    info("init CAN Data : %s\n", can_buffer[0]);
-    info("init CAN Data : %s\n", can_buffer[1]);
-
-    int i = 0;
-
-    for(i = 0 ; i < 30 ; i++)
-        strcpy(dummy_buffer[i], can_buffer[i]);
-    close(fd);
-}
 
 static void can_frame_init()
 {
@@ -1899,17 +1844,12 @@ static void mqtt_handler()
             {
                 #if RANE_CAN_TEST
                     publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);
-                #else
-                    publish(g_h, TopicFilter[UPSTREAM], dummy_buffer[dLoop]);
                 #endif
             }
         break; 
         case MODE_UPDOWN_STREAM:
             #if RANE_CAN_TEST
                 publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);
-            #else
-                info("Publish Message : %s\n", dummy_buffer[dLoop]);
-                publish(g_h, TopicFilter[UPSTREAM], dummy_buffer[dLoop]);
             #endif
         break;
     }
@@ -1961,8 +1901,6 @@ int main( int argc, char * argv[] )
 #if RANE_CAN_TEST
     makeTimer("CAN Data Read", &CANTimerID, 0, 5);
     makeTimer("JSON Handler", &JSONTimerID, 1, 0);
-#else
-    makeTimer("dummy JSON Handler", &dJSONTimerID, 1, 0);
 #endif
     makeTimer("Mqtt Handler", &MqttTimerID, 1, 0);
     if(gMode == MODE_SUBSCRIBE)
