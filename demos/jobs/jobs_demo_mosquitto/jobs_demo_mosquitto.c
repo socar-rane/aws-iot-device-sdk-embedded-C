@@ -947,11 +947,11 @@ static void json_handler()
     {
         dLoop = 0;
         dummy_data[dLoop] = current_data;
-        /*
-        int fd = open("./car_data.bin", O_RDWR);
-        write(fd, out_buffer, sizeof(out_buffer));
-        close(fd);
-        */
+        
+        FILE *fp = fopen("./car_data.bin", "w");
+        fwrite(dummy_data, sizeof(data_set_t), 30, fp);
+        fclose(fp);
+        
         printf("write complete\n");
     }
 #endif
