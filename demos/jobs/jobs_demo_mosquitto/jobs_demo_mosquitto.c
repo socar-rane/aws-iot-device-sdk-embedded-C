@@ -951,7 +951,7 @@ static void json_handler()
     #endif
     
     
- #if 0
+ #if 1
     if(dLoop < 30)
     {
         dummy_data[dLoop] = current_data;
