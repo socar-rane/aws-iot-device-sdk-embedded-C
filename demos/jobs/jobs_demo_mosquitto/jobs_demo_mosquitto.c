@@ -504,7 +504,7 @@ can_data_t cn7_data[P_IDS], b_data[P_IDS];
  * @brief Global data set
  */ 
 data_set_t current_data;
-
+data_set_t dummy_data[30];
 /**
  * @brief Initialize Topic name
  */
@@ -569,7 +569,7 @@ char gPrivateKey[64] = {0,};
 char gMDNNumber[13] = {0,};
 
 char jsonBuffer[512] = {0,};
-char dummy_buffer[30][512] = {0,};
+
 
 /// @brief Active Mode
 uint8_t gMode = 0, gLcount = 0, gLFlag = 1, dLoop = 0;
@@ -938,19 +938,21 @@ static void json_handler()
     #endif
     
     
- #if 0   
+ #if 1
     if(b_Loop < 30)
     {
-        strcpy(out_buffer[b_Loop], buffer);
+        dummy_data[b_Loop] = current_data;
         b_Loop++;
     }
     else
     {
         b_Loop = 0;
-        strcpy(out_buffer[b_Loop], buffer);
+        dummy_data[b_Loop] = current_data;
+        /*
         int fd = open("./car_data.bin", O_RDWR);
         write(fd, out_buffer, sizeof(out_buffer));
         close(fd);
+        */
         printf("write complete\n");
     }
 #endif
