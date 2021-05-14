@@ -989,6 +989,7 @@ static int makeTimer(char *name, timer_t *timerID, int sec, int msec)
     sa.sa_sigaction = timer_handler;  
     sigemptyset(&sa.sa_mask);  
   
+    info("Initialize makeTimer : %s\n", name);
     if (sigaction(sigNo, &sa, NULL) == -1)  
     {  
         printf("sigaction error\n");
@@ -1897,6 +1898,7 @@ static void mqtt_handler()
             #if RANE_CAN_TEST
                 publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);
             #else
+                info("Publish Message : %s\n", dummy_buffer[dLoop]);
                 publish(g_h, TopicFilter[UPSTREAM], dummy_buffer[dLoop]);
             #endif
         break;
