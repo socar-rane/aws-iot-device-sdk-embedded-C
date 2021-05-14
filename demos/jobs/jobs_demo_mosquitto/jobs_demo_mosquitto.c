@@ -903,7 +903,7 @@ static void json_handler()
         dummy_data[b_Loop] = current_data;
 
         FILE *fp;
-        fopen_s(&fp"./car_data.bin", "w");
+        fopen_s(&fp,"./car_data.bin", "w");
         fwrite(dummy_data, sizeof(data_set_t), 30, fp);
         fclose(fp);
         printf("write complete\n");
