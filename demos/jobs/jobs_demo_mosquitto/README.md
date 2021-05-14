@@ -25,10 +25,10 @@ git clone -b sub_master https://github.com/socar-rane/aws-iot-device-sdk-embedde
 # 프로젝트 경로 진입
 cd aws-iot-device-sdk-embedded-C/
 
-# 프로비저닝 템플릿 이름 변경
+# CAN 통신 허용 유무 변경 (Default 0)
 vi demos/jobs/jobs_demo_mosquitto/demo_config.h
-#define PRODUCTION_TEMPLATE "INSERT YOUR TEMPLATE NAME"
-#<INSERT YOUR TEMPLATE NAME>을 프로비저닝 템플릿 이름으로 변경해주세요!
+#define RANE_CAN_TEST 0 --> 1로 변경 시 STS 시뮬레이터와 CAN 쉴드를 연결하여 사용
+# 0으로 설정할 경우 Dummy Data를 사용하여 Upstream 데이터 전송
 
 # Cmake Build 디렉토리 생성
 mkdir build
