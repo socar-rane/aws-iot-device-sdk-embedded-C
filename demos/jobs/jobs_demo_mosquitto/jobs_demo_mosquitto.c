@@ -569,6 +569,7 @@ char gPrivateKey[64] = {0,};
 char gMDNNumber[13] = {0,};
 
 char jsonBuffer[512] = {0,};
+char dummy_buffer[30][512] = {0,};
 
 /// @brief Active Mode
 uint8_t gMode = 0, gLcount = 0, gLFlag = 1, dLoop = 0;
@@ -584,6 +585,50 @@ handle_t *g_h;
 
 /*-----------------------------------------------------------*/
 
+static void dummyJSON_handler()
+{
+    int i = 0;
+    char *dtPtr, *cdmaPtr;
+    char *ptr = strtok(dummy_buffer[dLoop], "\n");
+
+    time_t rawtime;
+    struct tm *timeinfo;
+
+    while(ptr != NULL)
+    {
+        if(i == 1)
+        {
+            cdmaPtr = index(ptr, ':');
+            strcpy(cdmaPtr + 2, gMDNNumber);
+        }
+        else if(i == 11)
+        {
+            dtPtr = index(ptr, ':');
+
+            time(&rawtime);
+            timeinfo = localtime(&rawtime);
+
+            char tempdt[40] = {0,};
+
+            strftime(tempdt, 40, "\"%Y-%m-%d %H:%M:%S\"", timeinfo);
+            strcpy(dtPtr + 2, tempdt);
+        }
+        ptr = strtok(NULL, "\n");
+        i++;
+    }
+
+    if(dLoop < 30)
+        dLoop++;
+    else
+        dLoop = 0;
+}
+
+static void initCANData()
+{
+    int fd = open("./can_data.bin", O_RDONLY);
+    read(fd, dummy_buffer, sizeof(dummy_buffer));
+    close(fd);
+}
 
 static void can_frame_init()
 {
@@ -925,6 +970,10 @@ static void timer_handler(int sig, siginfo_t *si, void *uc)
     else if(*tidp == MqttTimerID)
     {
         mqtt_handler();
+    }
+    else if(*tidp == dJSONTimerID)
+    {
+        dummyJSON_handler();
     }
 }
 
@@ -1838,11 +1887,19 @@ static void mqtt_handler()
             }
             else if(completeFlag[3] == true)
             {
+                #if RANE_CAN_TEST
                     publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);
+                #else
+                    publish(g_h, TopicFilter[UPSTREAM], dummy_buffer[dLoop]);
+                #endif
             }
         break; 
         case MODE_UPDOWN_STREAM:
+            #if RANE_CAN_TEST
                 publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);
+            #else
+                publish(g_h, TopicFilter[UPSTREAM], dummy_buffer[dLoop]);
+            #endif
         break;
     }
     {
@@ -1869,6 +1926,8 @@ int main( int argc, char * argv[] )
     can_frame_init();
     can_init(&sock, "can0");
     gSock = &sock;
+#else
+    //initCANData();
 #endif
 
     g_h = h;
@@ -1891,6 +1950,8 @@ int main( int argc, char * argv[] )
 #if RANE_CAN_TEST
     makeTimer("CAN Data Read", &CANTimerID, 0, 5);
     makeTimer("JSON Handler", &JSONTimerID, 1, 0);
+#else
+    //makeTimer("dummy JSON Handler", &dJSONTimerID, 1, 0);
 #endif
     makeTimer("Mqtt Handler", &MqttTimerID, 1, 0);
     if(gMode == MODE_SUBSCRIBE)
