@@ -578,7 +578,6 @@ uint8_t gMode = 0, gLcount = 0, gLFlag = 1, dLoop = 0;
 timer_t CANTimerID;
 timer_t JSONTimerID;
 timer_t MqttTimerID;
-timer_t dJSONTimerID;
 
 /// @brief Global runtime state handle
 handle_t *g_h;
@@ -975,12 +974,6 @@ static void timer_handler(int sig, siginfo_t *si, void *uc)
     {
         mqtt_handler();
     }
-    /*
-    else if(*tidp == dJSONTimerID)
-    {
-        dummyJSON_handler();
-    }
-    */
 }
 
 static int makeTimer(char *name, timer_t *timerID, int sec, int msec)
@@ -1956,9 +1949,8 @@ int main( int argc, char * argv[] )
 #if RANE_CAN_TEST
     makeTimer("CAN Data Read", &CANTimerID, 0, 5);
     makeTimer("JSON Handler", &JSONTimerID, 1, 0);
-#else
-    //makeTimer("dummy JSON Handler", &dJSONTimerID, 1, 0);
 #endif
+
     makeTimer("Mqtt Handler", &MqttTimerID, 1, 0);
     if(gMode == MODE_SUBSCRIBE)
         subscribe(h, TopicFilter[USER_PUBSUB]);
