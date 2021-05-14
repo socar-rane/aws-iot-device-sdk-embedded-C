@@ -1955,9 +1955,9 @@ int main( int argc, char * argv[] )
 
 #if RANE_CAN_TEST
     makeTimer("CAN Data Read", &CANTimerID, 0, 5);
-    makeTimer("JSON Handler", &JSONTimerID, 1, 0);
+    
 #endif
-
+    makeTimer("JSON Handler", &JSONTimerID, 1, 0);
     makeTimer("Mqtt Handler", &MqttTimerID, 1, 0);
     if(gMode == MODE_SUBSCRIBE)
         subscribe(h, TopicFilter[USER_PUBSUB]);
