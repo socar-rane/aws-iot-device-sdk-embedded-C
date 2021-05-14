@@ -504,7 +504,6 @@ can_data_t cn7_data[P_IDS], b_data[P_IDS];
  * @brief Global data set
  */ 
 data_set_t current_data;
-data_set_t dummy_data[30];
 
 /**
  * @brief Initialize Topic name
@@ -578,15 +577,13 @@ uint8_t gMode = 0, gLcount = 0, gLFlag = 1, dLoop = 0;
 timer_t CANTimerID;
 timer_t JSONTimerID;
 timer_t MqttTimerID;
+timer_t dJSONTimerID;
 
 /// @brief Global runtime state handle
 handle_t *g_h;
 
 /*-----------------------------------------------------------*/
 
-static void initCANData()
-{
-}
 
 static void can_frame_init()
 {
@@ -894,19 +891,19 @@ static void json_handler()
     #endif
     
     
- #if 1
-    if(dLoop < 30)
+ #if 0   
+    if(b_Loop < 30)
     {
-        dummy_data[dLoop] = current_data;
-        dLoop++;
+        strcpy(out_buffer[b_Loop], buffer);
+        b_Loop++;
     }
     else
     {
-        dLoop = 0;
-        dummy_data[dLoop] = current_data;
-        FILE *fp = fopen("./car_data.bin", "w");
-        fwrite(dummy_data, sizeof(data_set_t), 30, fp);
-        fclose(fp);
+        b_Loop = 0;
+        strcpy(out_buffer[b_Loop], buffer);
+        int fd = open("./car_data.bin", O_RDWR);
+        write(fd, out_buffer, sizeof(out_buffer));
+        close(fd);
         printf("write complete\n");
     }
 #endif
@@ -1841,19 +1838,11 @@ static void mqtt_handler()
             }
             else if(completeFlag[3] == true)
             {
-                #if RANE_CAN_TEST
                     publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);
-                #else
-                    //publish(g_h, TopicFilter[UPSTREAM], dummy_buffer[dLoop]);
-                #endif
             }
         break; 
         case MODE_UPDOWN_STREAM:
-            #if RANE_CAN_TEST
                 publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);
-            #else
-                //publish(g_h, TopicFilter[UPSTREAM], dummy_buffer[dLoop]);
-            #endif
         break;
     }
     {
@@ -1880,8 +1869,6 @@ int main( int argc, char * argv[] )
     can_frame_init();
     can_init(&sock, "can0");
     gSock = &sock;
-#else
-    //initCANData();
 #endif
 
     g_h = h;
@@ -1903,8 +1890,8 @@ int main( int argc, char * argv[] )
 
 #if RANE_CAN_TEST
     makeTimer("CAN Data Read", &CANTimerID, 0, 5);
-#endif
     makeTimer("JSON Handler", &JSONTimerID, 1, 0);
+#endif
     makeTimer("Mqtt Handler", &MqttTimerID, 1, 0);
     if(gMode == MODE_SUBSCRIBE)
         subscribe(h, TopicFilter[USER_PUBSUB]);
