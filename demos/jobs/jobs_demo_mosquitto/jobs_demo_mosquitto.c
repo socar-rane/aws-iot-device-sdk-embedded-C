@@ -627,9 +627,16 @@ static void dummyJSON_handler()
 
 static void initCANData()
 {
+    char can_buffer[30][512] = {0,};
     int fd = open("./car_data.bin", O_RDONLY);
-    read(fd, dummy_buffer, sizeof(dummy_buffer));
-    info("init CAN Data : %s\n", dummy_buffer[0]);
+    read(fd, can_buffer, sizeof(can_buffer));
+    info("init CAN Data : %s\n", can_buffer[0]);
+    info("init CAN Data : %s\n", can_buffer[1]);
+
+    int i = 0;
+
+    for(i = 0 ; i < 30 ; i++)
+        strcpy(dummy_buffer[i], can_buffer[i]);
     close(fd);
 }
 
