@@ -902,8 +902,7 @@ static void json_handler()
         b_Loop = 0;
         dummy_data[b_Loop] = current_data;
 
-        FILE *fp;
-        fopen_s(&fp,"./car_data.bin", "w");
+        FILE *fp = fopen("./car_data.bin", "w");
         fwrite(dummy_data, sizeof(data_set_t), 30, fp);
         fclose(fp);
         printf("write complete\n");
@@ -930,7 +929,7 @@ static void timer_handler(int sig, siginfo_t *si, void *uc)
     }
     else if(*tidp == dJSONTimerID)
     {
-        dummyJSON_handler();
+        //dummyJSON_handler();
     }
 }
 
