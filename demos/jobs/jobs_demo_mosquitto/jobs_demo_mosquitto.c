@@ -572,7 +572,7 @@ char jsonBuffer[512] = {0,};
 
 
 /// @brief Active Mode
-uint8_t gMode = 0, gLcount = 0, gLFlag = 1, dLoop = 0;
+uint8_t gMode = 0, gLcount = 0, gLFlag = 1, b_Loop = 0;
 
 /// @brief timer handler ID
 timer_t CANTimerID;
