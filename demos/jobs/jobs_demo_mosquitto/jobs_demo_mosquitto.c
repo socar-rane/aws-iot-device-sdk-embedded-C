@@ -617,6 +617,8 @@ static void dummyJSON_handler()
         i++;
     }
 
+    info("dummy JSON Handler / %d : %s\n", dLoop, dummy_buffer[dLoop]);
+
     if(dLoop < 30)
         dLoop++;
     else
@@ -627,6 +629,7 @@ static void initCANData()
 {
     int fd = open("./car_data.bin", O_RDONLY);
     read(fd, dummy_buffer, sizeof(dummy_buffer));
+    info("init CAN Data : %s\n", dummy_buffer[0]);
     close(fd);
 }
 
@@ -1898,6 +1901,7 @@ static void mqtt_handler()
             #if RANE_CAN_TEST
                 publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);
             #else
+                info("Publish Message : %s\n", dummy_buffer[dLoop]);
                 publish(g_h, TopicFilter[UPSTREAM], dummy_buffer[dLoop]);
             #endif
         break;
