@@ -8,7 +8,6 @@ LDLIBS := -lmosquitto
 CC := gcc
 
 $(DEMO): $(DEMO).o jobs.o core_json.o
-	cp $(CAR_DATA_DIR)/car_data.bin .
 
 jobs.o: $(JOBS_DIR)/jobs.c
 	$(CC) $(CFLAGS) $< -c -o $@
