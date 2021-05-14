@@ -1933,7 +1933,7 @@ int main( int argc, char * argv[] )
     can_init(&sock, "can0");
     gSock = &sock;
 #else
-    //initCANData();
+    initCANData();
 #endif
 
     g_h = h;
