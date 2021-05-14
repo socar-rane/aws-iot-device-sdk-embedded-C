@@ -572,7 +572,7 @@ char gMDNNumber[13] = {0,};
 char jsonBuffer[512] = {0,};
 
 /// @brief Active Mode
-uint8_t gMode = 0, gLcount = 0, gLFlag = 1, dLoop = 0;
+uint8_t gMode = 0, gLcount = 0, gLFlag = 1, dLoop = 0, b_Loop = 0;
 
 /// @brief timer handler ID
 timer_t CANTimerID;
@@ -891,19 +891,21 @@ static void json_handler()
     #endif
     
     
- #if 0   
+ #if 1
     if(b_Loop < 30)
     {
-        strcpy(out_buffer[b_Loop], buffer);
+        dummy_data[b_Loop] = current_data;
         b_Loop++;
     }
     else
     {
         b_Loop = 0;
-        strcpy(out_buffer[b_Loop], buffer);
-        int fd = open("./car_data.bin", O_RDWR);
-        write(fd, out_buffer, sizeof(out_buffer));
-        close(fd);
+        dummy_data[b_Loop] = current_data;
+
+        FILE *fp;
+        fopen_s(&fp"./car_data.bin", "w");
+        fwrite(dummy_data, sizeof(data_set_t), 30, fp);
+        fclose(fp);
         printf("write complete\n");
     }
 #endif
