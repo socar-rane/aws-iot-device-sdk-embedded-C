@@ -113,5 +113,5 @@
 #define FOOTBRAKE 4 // 02 ON / 01 OFF
 
 #define RANE_CAN_TEST 1
-#define DEBUG 0
+#define DEBUG 1
 #endif /* ifndef DEMO_CONFIG_H */
