@@ -584,7 +584,7 @@ timer_t dJSONTimerID;
 handle_t *g_h;
 
 /*-----------------------------------------------------------*/
-
+#if 0
 static void dummyJSON_handler()
 {
     int i = 0;
@@ -622,13 +622,15 @@ static void dummyJSON_handler()
     else
         dLoop = 0;
 }
-
+#endif
+#if 0
 static void initCANData()
 {
     int fd = open("./can_data.bin", O_RDONLY);
     read(fd, dummy_buffer, sizeof(dummy_buffer));
     close(fd);
 }
+#endif
 
 static void can_frame_init()
 {
