@@ -617,6 +617,8 @@ static void dummyJSON_handler()
         i++;
     }
 
+    info("dummy JSON Handler : %s\n", dummy_buffer[dLoop]);
+
     if(dLoop < 30)
         dLoop++;
     else
