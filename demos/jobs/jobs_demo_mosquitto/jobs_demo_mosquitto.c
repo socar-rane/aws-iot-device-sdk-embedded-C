@@ -1894,7 +1894,11 @@ static void mqtt_handler()
             }
         break; 
         case MODE_UPDOWN_STREAM:
-            publish(g_h, TopicFilter[UPSTREAM], dummy_buffer[dLoop]);
+            #if RANE_CAN_TEST
+                publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);
+            #else
+                publish(g_h, TopicFilter[UPSTREAM], dummy_buffer[dLoop]);
+            #endif
         break;
     }
     {
