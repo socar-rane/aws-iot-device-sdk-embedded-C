@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <fcntl.h>
 
 /* POSIX includes. */
 #include <signal.h>
@@ -78,7 +79,7 @@ static void usage( const char * programName )
              "-d : Cert file Directory\n"
              "-f : Fleet Provisioning Template Name\n"
              "-n : Client ID\n"
-             "-m : select mode. 1: Publish / 2: Subscribe / 3: Fleet Provisioning\n"
+             "-m : select mode. 1: Publish / 2: Subscribe / 3: Fleet Provisioning / 4: UpDownstream Test\n"
              "-M : Publish Message.\n"
              "-N : MDN Number\n"
              "-t : Publish / Subscribe Topic\n"
@@ -170,13 +171,6 @@ typedef struct
 } handle_t;
 
 /*-----------------------------------------------------------*/
-
-/**
- * 
- * 
- */
-
-
 
 /**
  * @brief Populate a handle with default values.
@@ -419,6 +413,17 @@ static void process_can(struct can_frame *frame);
 /// @brief Receive can data
 static void receive_can(int *sck, struct can_frame *frame);
 
+/// @brief MQTT Handler function
+static void mqtt_handler();
+
+/// @brief Create Timer handler (MQTT, JSON, CAN)
+static int makeTimer(char *name, timer_t *timerID, int sec, int msec);
+
+/// @brief Initialize timer handler function
+static void timer_handler(int sig, siginfo_t *si, void *uc);
+
+/// @brief Create Report JSON String
+static void json_handler();
 /**
  * @brief Log an informational message.
  */
@@ -499,6 +504,7 @@ can_data_t cn7_data[P_IDS], b_data[P_IDS];
  * @brief Global data set
  */ 
 data_set_t current_data;
+data_set_t dummy_data[30];
 
 /**
  * @brief Initialize Topic name
@@ -529,7 +535,7 @@ char queryCertificate[4][64] =
 };
 
 /// @brief Provisioning complete Flag
-bool completeFlag[3] = {false, false, false};
+bool completeFlag[4] = {false, false, false, false};
 
 /// @brief Endpoint Device UUID
 char uuidStr[64] = {0,};
@@ -563,15 +569,24 @@ char gPrivateKey[64] = {0,};
 /// @brief Global MDN Number
 char gMDNNumber[13] = {0,};
 
-/// @brief Active Mode
-uint8_t gMode = 0, gLcount = 0, gLFlag = 1;
+char jsonBuffer[512] = {0,};
 
+/// @brief Active Mode
+uint8_t gMode = 0, gLcount = 0, gLFlag = 1, dLoop = 0;
+
+/// @brief timer handler ID
 timer_t CANTimerID;
-timer_t mqttTimerID;
 timer_t JSONTimerID;
+timer_t MqttTimerID;
+
+/// @brief Global runtime state handle
 handle_t *g_h;
 
 /*-----------------------------------------------------------*/
+
+static void initCANData()
+{
+}
 
 static void can_frame_init()
 {
@@ -640,9 +655,12 @@ static void diff_can(struct can_frame frame)
 			if(b_data[ID_GEAR].frames.data[SHIFTER] != frame.data[SHIFTER])
 			{
 				current_data.gear = frame.data[SHIFTER];
+
+                #if DEBUG
 				printf("current gear : %c\n", (frame.data[SHIFTER] == 0x0) ? 'P' :
 				frame.data[SHIFTER] == 0x7 ? 'R' :
 				frame.data[SHIFTER] == 0x6 ? 'N' : 'D');
+                #endif
 			}
 		break;
 		case CN7_P_STEERING:
@@ -651,13 +669,17 @@ static void diff_can(struct can_frame frame)
 			if(b_data[ID_SPEED].frames.data[SPEED] != frame.data[SPEED])
 			{
 				current_data.speed = frame.data[SPEED];
+                #if DEBUG
 				printf("current speed : %02X\n", frame.data[SPEED]);
+                #endif
 			}
 			
 			if(b_data[ID_SPEED].frames.data[RPM] != frame.data[RPM])
 			{
 				current_data.rpm = (uint16_t)map(frame.data[RPM], 5, 0x4E, 350, 4907);
+                #if DEBUG
 				printf("current rpm : %ld\n", map(frame.data[RPM], 5, 0x4E, 350, 4907));
+                #endif
 			}
 		break;
 		case CN7_P_PEDAL_POS:
@@ -671,19 +693,25 @@ static void diff_can(struct can_frame frame)
 			if(b_data[ID_PEDAL].frames.data[COOLANT] != frame.data[COOLANT])
 			{
 				current_data.temp = (uint8_t) map(frame.data[COOLANT], 0, 255, -48, 134);
+                #if DEBUG
 				printf("current temperature : %ld\n", map(frame.data[COOLANT], 0, 255, -48, 134));
+                #endif
 			}
 			if(b_data[ID_PEDAL].frames.data[FOOTBRAKE] != frame.data[FOOTBRAKE])
 			{
 				current_data.foot_brake = (frame.data[FOOTBRAKE] >> 1);
+                #if DEBUG
 				printf("foot brake : %s\n", frame.data[FOOTBRAKE] == 0x02 ? "On" : "Off");
+                #endif
 			}
 		break;
 		case CN7_P_LIGHT_TH:
 			if(b_data[ID_LIGHT].frames.data[HAZARD] != frame.data[HAZARD])
 			{
 				current_data.turn_signal = (frame.data[HAZARD] == 0x02) ? 1 : 0;
+                #if DEBUG
 				printf("Hazard : %s\n", (frame.data[HAZARD] == 0x02) ? "On": "Off");
+                #endif
 			}
 			else if(b_data[ID_LIGHT].frames.data[TURN_HOOD] != frame.data[TURN_HOOD])
 			{
@@ -691,13 +719,17 @@ static void diff_can(struct can_frame frame)
 				&& ((frame.data[TURN_HOOD] & 0x02) == (b_data[ID_LIGHT].frames.data[TURN_HOOD] & 0x02)))
 				{
 					current_data.turn_signal = (frame.data[TURN_HOOD] >> 3) ? 2 : 0;
+                    #if DEBUG
 					printf("L_Turn : %s / %02X\n", (frame.data[TURN_HOOD] >> 3) ? "On": "Off" , frame.data[TURN_HOOD] >> 3);
+                    #endif
 				}
 				else if(((((frame.data[TURN_HOOD] & 0x02) >> 1) == 1) || ((((frame.data[TURN_HOOD] & 0x02) >> 1) == 0)))
 				&& ((frame.data[TURN_HOOD] >> 3) == (b_data[ID_LIGHT].frames.data[TURN_HOOD] >> 3)))
 				{
 					current_data.hood = (frame.data[TURN_HOOD] & 0x02) >> 1;
+                    #if DEBUG
 					printf("Hood : %s\n", (((frame.data[TURN_HOOD] & 0x02) >> 1) == 1) ? "On": "Off");
+                    #endif
 				}
 			}
 			else if(b_data[ID_LIGHT].frames.data[TURN_SIDE] != frame.data[TURN_SIDE])
@@ -706,20 +738,26 @@ static void diff_can(struct can_frame frame)
 					&& ((frame.data[TURN_SIDE] & 0x10) == (b_data[ID_LIGHT].frames.data[TURN_SIDE] & 0x10)))
 					{
 						current_data.turn_signal = ((frame.data[TURN_SIDE] >> 6) == 1) ? 3 : 0;
+                        #if DEBUG
 						printf("R_Turn : %s\n", ((frame.data[TURN_SIDE] >> 6) == 1) ? "On": "Off");
+                        #endif
 					}
 				else if(((((frame.data[TURN_SIDE] & 0x10) >> 4) == 1) || (((frame.data[TURN_SIDE] & 0x10) >> 4) == 0))
 					&& ((frame.data[TURN_SIDE] >> 6) == (b_data[ID_LIGHT].frames.data[TURN_SIDE] >> 6)))
 					{
 						current_data.side_brake = ((frame.data[TURN_SIDE] & 0x10) >> 4);
+                        #if DEBUG
 						printf("Side Brake : %s\n", (((frame.data[TURN_SIDE] & 0x10) >> 4) == 1) ? "On": "Off");
+                        #endif
 					}
 			}
 				
 			else if(b_data[ID_LIGHT].frames.data[HEADLAMP] != frame.data[HEADLAMP])
 			{
 				current_data.light = (frame.data[HEADLAMP] == 0x80) ? 1 : 0;
+                #if DEBUG
 				printf("Light : %s\n", (frame.data[HEADLAMP] == 0x80) ? "On": "Off");
+                #endif
 			}
 			
 			if(b_data[ID_LIGHT].frames.data[TRUNK_SEATBELT] != frame.data[TRUNK_SEATBELT])
@@ -728,13 +766,17 @@ static void diff_can(struct can_frame frame)
 				&& ((frame.data[TRUNK_SEATBELT] & 0x04) == (b_data[ID_LIGHT].frames.data[TRUNK_SEATBELT] & 0x04)))
 				{
 					current_data.trunk = ((frame.data[TRUNK_SEATBELT] >> 4) == 1) ? 1 : 0;
+                    #if DEBUG
 					printf("Trunk : %s\n", ((frame.data[TRUNK_SEATBELT] >> 4) == 1) ? "On" : "Off");
+                    #endif
 				}
 				else if(((((frame.data[TRUNK_SEATBELT] & 0x04) >> 2) == 1) || (((frame.data[TRUNK_SEATBELT] & 0x04) >> 2) == 0))
 				&& ((frame.data[TRUNK_SEATBELT] >> 4) == (b_data[ID_LIGHT].frames.data[TRUNK_SEATBELT] >> 4)))
 				{
 					current_data.seat_belt = (((frame.data[TRUNK_SEATBELT] & 0x04) >> 2) == 1) ? 1 : 0;
+                    #if DEBUG
 					printf("Seat Belt : %s\n", (((frame.data[TRUNK_SEATBELT] & 0x04) >> 2) == 1) ? "On" : "Off");
+                    #endif
 				}
 				
 			}
@@ -780,71 +822,94 @@ static void receive_can(int *sck, struct can_frame *frame)
 	process_can(frame);
 }
 
-static void mqtt_handler()
+static void json_handler()
 {
-    bool ret = true;
-    int m_ret, i = 0;
+    char temp[128] = {0,}, t_buff[128] = {0,};
+    time_t rawtime;
+    struct tm* timeinfo;
 
-    switch(gMode)
+    memset(jsonBuffer, 0, sizeof(char) * 2048);
+
+    sprintf(temp, "{\n");
+    strcpy(jsonBuffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp, "\t\"cdma_id\" : 0%d,\n", atoi(gMDNNumber));
+    strcat(jsonBuffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp, "\t\"trunk\" : \"%s\",\n", current_data.trunk ? "On" : "Off");
+    strcat(jsonBuffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp, "\t\"hood\" : \"%s\",\n", current_data.hood ? "On" : "Off");
+    strcat(jsonBuffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp, "\t\"side_brake\" : \"%s\",\n", current_data.side_brake ? "On" : "Off");
+    strcat(jsonBuffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp, "\t\"gear\" : \"%c\",\n", (current_data.gear == 0x0) ? 'P' :
+				current_data.gear == 0x7 ? 'R' :
+				current_data.gear == 0x6 ? 'N' : 'D');
+    strcat(jsonBuffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp, "\t\"turn_signal\" : \"%s\",\n", current_data.turn_signal == 1 ? "Hazard" :
+    current_data.turn_signal == 2 ? "Left" : current_data.turn_signal == 3 ? "Right" : "Off");
+    strcat(jsonBuffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp, "\t\"light\" : \"%s\",\n", current_data.light ? "On" : "Off");
+    strcat(jsonBuffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp, "\t\"coolant\" : %d,\n", current_data.temp);
+    strcat(jsonBuffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp, "\t\"speed\" : %d,\n", current_data.speed);
+    strcat(jsonBuffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp, "\t\"rpm\" : %d,\n", current_data.rpm);
+    strcat(jsonBuffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+    strftime(t_buff, 128, "\"%Y-%m-%d %H:%M:%S\"", timeinfo);
+
+    sprintf(temp, "\t\"created_at\" : %s\n", t_buff);
+    strcat(jsonBuffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp, "}\n", t_buff);
+    strcat(jsonBuffer,temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    #if DEBUG
+        info("JSON String : %s\n", jsonBuffer);
+    #endif
+    
+    
+ #if 1
+    if(dLoop < 30)
     {
-        case MODE_PUBLISH:
-            if(!gLcount)
-                publish(g_h, TopicFilter[USER_PUBSUB], MqttExMessage[3]);
-            else
-            {
-                if(i == gLcount)
-                {
-                    gLFlag = 0;
-                    exit(1);
-                }
-                publish(g_h, TopicFilter[USER_PUBSUB], MqttExMessage[3]);
-                i++;
-            }
-        break;
-        case MODE_FLEET_PROV:
-            if(completeFlag[0] == true)
-            {
-                publish(g_h, TopicFilter[PROVISIONING_CC], MqttExMessage[0]);
-                completeFlag[0] = false;
-            }
-            if(completeFlag[1] == true)
-            {
-                publish(g_h, TopicFilter[PROVISIONING_TT], MqttExMessage[1]);
-                completeFlag[1] = false;
-            }
-
-            else if(completeFlag[2] == true)
-            {
-                bool ret[2];
-                initHandle(g_h, 2);
-                ret[0] = setup(g_h);
-                ret[1] = mqttConnect(g_h);
-                if( ret[0] == false || ret[1] == false )
-                {
-                    errx( 1, "fatal error" );
-                }
-                set_in_progress = SET_COMPLETE;
-                //subscribe(h, TopicFilter[OPENWORLD]);
-                sprintf(TopicFilter[DOWNSTREAM], DEVICE_DOWNSTREAM_TOPIC, gClientId);
-                TopicFilterLength[DOWNSTREAM] = strlen(TopicFilter[DOWNSTREAM]);
-                subscribe(g_h, TopicFilter[DOWNSTREAM]);
-
-                sprintf(TopicFilter[UPSTREAM], DEVICE_UPSTREAM_TOPIC, gClientId);
-                TopicFilterLength[UPSTREAM] = strlen(TopicFilter[UPSTREAM]);
-                subscribe(g_h, TopicFilter[UPSTREAM]);
-                completeFlag[2] = false;
-            }
-        break; 
+        dummy_data[dLoop] = current_data;
+        dLoop++;
     }
+    else
     {
-        m_ret = mosquitto_loop( g_h->m, MQTT_WAIT_TIME, 1 );
-
-        if( m_ret != MOSQ_ERR_SUCCESS )
-        {
-            errx( 1, "mosquitto_loop: %s", mosquitto_strerror( m_ret ) );
-        }
-        //now = time( NULL );
+        dLoop = 0;
+        dummy_data[dLoop] = current_data;
+        FILE *fp = fopen("./car_data.bin", "w");
+        fwrite(dummy_data, sizeof(data_set_t), 30, fp);
+        fclose(fp);
+        printf("write complete\n");
     }
+#endif
 }
 
 static void timer_handler(int sig, siginfo_t *si, void *uc)
@@ -856,7 +921,11 @@ static void timer_handler(int sig, siginfo_t *si, void *uc)
     {
         receive_can(gSock, &frame);
     }
-    else if(*tidp == mqttTimerID)
+    else if(*tidp == JSONTimerID)
+    {
+        json_handler();
+    }
+    else if(*tidp == MqttTimerID)
     {
         mqtt_handler();
     }
@@ -874,6 +943,7 @@ static int makeTimer(char *name, timer_t *timerID, int sec, int msec)
     sa.sa_sigaction = timer_handler;  
     sigemptyset(&sa.sa_mask);  
   
+    info("Initialize makeTimer : %s\n", name);
     if (sigaction(sigNo, &sa, NULL) == -1)  
     {  
         printf("sigaction error\n");
@@ -947,7 +1017,7 @@ void initHandle( handle_t * p, uint8_t flag )
             h.certfile = gCertFile;
             h.keyfile = gPrivateKey;
             h.cafile = gCAFileName;
-                //h.capath = "./certificates";
+            h.capath = "./certificates";
         }
         break;
     }
@@ -1043,7 +1113,7 @@ static bool parseArgs( handle_t * h,
             { NULL,        0,                 NULL, 0   }
         };
 
-        c = getopt_long( argc, argv, "c:d:h:n:l:m:n:f:M:N:t:?",
+        c = getopt_long( argc, argv, "c:d:h:n:l:m:f:M:N:t:?",
                          long_options, &option_index );
 
         if( c == -1 )
@@ -1099,18 +1169,19 @@ static bool parseArgs( handle_t * h,
                 gMode = atoi(optarg);
                 break;
 
-            case 'n':
-                h->name = optarg;
-                h->nameLength = strlen( optarg );
-                break;
-
             case 'M':
                 strcpy(MqttExMessage[3], optarg);
                 MqttExMessageLength[3] = strlen(MqttExMessage[3]);
                 break;
 
             case 'N':
+            {
+                char *clientID = malloc(sizeof(char)*40);
                 strcpy(gMDNNumber, optarg);
+                sprintf(clientID, "sts-%s", gMDNNumber);
+                h->name = clientID;
+                h->nameLength = strlen( clientID );
+            }
                 break;
 
             case 't':
@@ -1550,7 +1621,7 @@ void on_message( struct mosquitto * m,
                 
                 closeConnection(h);
                 //mosquitto_destroy(h->m);
-                changeConnectionInformation(h);
+                //changeConnectionInformation(h);
                 //mosquitto_destroy( h->m );
 
                 completeFlag[2] = true;
@@ -1639,7 +1710,9 @@ static void teardown( int x,
         free( h->jobid );
     }
 
+    #if RANE_CAN_TEST
     close(*gSock);
+    #endif
     closeConnection( h );
     mosquitto_destroy( h->m );
     mosquitto_lib_cleanup();
@@ -1711,20 +1784,108 @@ static void createUUIDStr()
     fclose(fp);
 }
 
+static void mqtt_handler()
+{
+    bool ret = true;
+    int m_ret, i = 0;
+
+    switch(gMode)
+    {
+        case MODE_PUBLISH:
+            if(!gLcount)
+                publish(g_h, TopicFilter[USER_PUBSUB], MqttExMessage[3]);
+            else
+            {
+                if(i == gLcount)
+                {
+                    gLFlag = 0;
+                    exit(1);
+                }
+                publish(g_h, TopicFilter[USER_PUBSUB], MqttExMessage[3]);
+                i++;
+            }
+        break;
+        case MODE_FLEET_PROV:
+            if(completeFlag[0] == true)
+            {
+                publish(g_h, TopicFilter[PROVISIONING_CC], MqttExMessage[0]);
+                completeFlag[0] = false;
+            }
+            if(completeFlag[1] == true)
+            {
+                publish(g_h, TopicFilter[PROVISIONING_TT], MqttExMessage[1]);
+                completeFlag[1] = false;
+            }
+
+            else if(completeFlag[2] == true)
+            {
+                bool ret[2];
+                initHandle(g_h, 2);
+                ret[0] = setup(g_h);
+                ret[1] = mqttConnect(g_h);
+                if( ret[0] == false || ret[1] == false )
+                {
+                    errx( 1, "fatal error" );
+                }
+                set_in_progress = SET_COMPLETE;
+                //subscribe(h, TopicFilter[OPENWORLD]);
+                sprintf(TopicFilter[DOWNSTREAM], DEVICE_DOWNSTREAM_TOPIC, gClientId);
+                TopicFilterLength[DOWNSTREAM] = strlen(TopicFilter[DOWNSTREAM]);
+                subscribe(g_h, TopicFilter[DOWNSTREAM]);
+
+                sprintf(TopicFilter[UPSTREAM], DEVICE_UPSTREAM_TOPIC, gClientId);
+                TopicFilterLength[UPSTREAM] = strlen(TopicFilter[UPSTREAM]);
+//                subscribe(g_h, TopicFilter[UPSTREAM]);
+                completeFlag[2] = false;
+                completeFlag[3] = true;
+            }
+            else if(completeFlag[3] == true)
+            {
+                #if RANE_CAN_TEST
+                    publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);
+                #else
+                    //publish(g_h, TopicFilter[UPSTREAM], dummy_buffer[dLoop]);
+                #endif
+            }
+        break; 
+        case MODE_UPDOWN_STREAM:
+            #if RANE_CAN_TEST
+                publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);
+            #else
+                //publish(g_h, TopicFilter[UPSTREAM], dummy_buffer[dLoop]);
+            #endif
+        break;
+    }
+    {
+        m_ret = mosquitto_loop( g_h->m, MQTT_WAIT_TIME, 1 );
+
+        if( m_ret != MOSQ_ERR_SUCCESS )
+        {
+            errx( 1, "mosquitto_loop: %s", mosquitto_strerror( m_ret ) );
+        }
+        //now = time( NULL );
+    }
+}
+
 int main( int argc, char * argv[] )
 {
-    handle_t h_, *h = &h_;
-    g_h = h;
+    handle_t h_, * h = &h_;
     time_t now;
-    int sock = 0;
+    int i = 0, sock = 0;
 
     createUUIDStr();
     initHandle( h, 1 );
 
+#if RANE_CAN_TEST
     can_frame_init();
     can_init(&sock, "can0");
-
     gSock = &sock;
+#else
+    //initCANData();
+#endif
+
+    g_h = h;
+    
 
     if( parseArgs( h, argc, argv ) == false )
     {
@@ -1739,9 +1900,12 @@ int main( int argc, char * argv[] )
     }
        
     //h->lastPrompt = time( NULL );
-    makeTimer("CAN Data Read", &CANTimerID, 0, 5);
-    makeTimer("MQTT Handler", &mqttTimerID, 0, 5);
 
+#if RANE_CAN_TEST
+    makeTimer("CAN Data Read", &CANTimerID, 0, 5);
+#endif
+    makeTimer("JSON Handler", &JSONTimerID, 1, 0);
+    makeTimer("Mqtt Handler", &MqttTimerID, 1, 0);
     if(gMode == MODE_SUBSCRIBE)
         subscribe(h, TopicFilter[USER_PUBSUB]);
 
@@ -1753,10 +1917,93 @@ int main( int argc, char * argv[] )
                 }
                 completeFlag[0] = true; 
     }
+    else if(gMode == MODE_UPDOWN_STREAM)
+    {
+        sprintf(gClientId, "sts-%s", gMDNNumber);
+        sprintf(TopicFilter[DOWNSTREAM], DEVICE_DOWNSTREAM_TOPIC, gClientId);
+        TopicFilterLength[DOWNSTREAM] = strlen(TopicFilter[DOWNSTREAM]);
+        subscribe(g_h, TopicFilter[DOWNSTREAM]);
+
+        sprintf(TopicFilter[UPSTREAM], DEVICE_UPSTREAM_TOPIC, gClientId);
+        TopicFilterLength[UPSTREAM] = strlen(TopicFilter[UPSTREAM]);
+    }
 
     while(1)
     {
-        pause();
+        sleep(1);
+        #if 0
+        bool ret = true;
+        int m_ret;
+
+        switch(gMode)
+        {
+            case MODE_PUBLISH:
+                if(!gLcount)
+                    publish(h, TopicFilter[USER_PUBSUB], MqttExMessage[3]);
+                else
+                {
+                    if(i == gLcount)
+                    {
+                        gLFlag = 0;
+                        exit(1);
+                    }
+                    publish(h, TopicFilter[USER_PUBSUB], MqttExMessage[3]);
+                    i++;
+                }
+            break;
+            case MODE_FLEET_PROV:
+                if(completeFlag[0] == true)
+                {
+                    publish(h, TopicFilter[PROVISIONING_CC], MqttExMessage[0]);
+                    completeFlag[0] = false;
+                }
+                if(completeFlag[1] == true)
+                {
+                    publish(h, TopicFilter[PROVISIONING_TT], MqttExMessage[1]);
+                    completeFlag[1] = false;
+                }
+
+                else if(completeFlag[2] == true)
+                {
+                    bool ret[2];
+                    initHandle(h, 2);
+                    ret[0] = setup(h);
+                    ret[1] = mqttConnect(h);
+                    if( ret[0] == false || ret[1] == false )
+                    {
+                        errx( 1, "fatal error" );
+                    }
+                    set_in_progress = SET_COMPLETE;
+                    //subscribe(h, TopicFilter[OPENWORLD]);
+                    sprintf(TopicFilter[DOWNSTREAM], DEVICE_DOWNSTREAM_TOPIC, gClientId);
+                    TopicFilterLength[DOWNSTREAM] = strlen(TopicFilter[DOWNSTREAM]);
+                    subscribe(h, TopicFilter[DOWNSTREAM]);
+
+                    sprintf(TopicFilter[DOWNSTREAM], DEVICE_DOWNSTREAM_TOPIC, gClientId);
+                    TopicFilterLength[DOWNSTREAM] = strlen(TopicFilter[DOWNSTREAM]);
+    
+                    completeFlag[2] = false;
+                    completeFlag[3] = true;
+                }
+                else if(completeFlag[3] == true)
+                {
+                    publish(h, TopicFilter[UPSTREAM], buffer);
+                }
+            break; 
+        }
+        {
+            m_ret = mosquitto_loop( h->m, MQTT_WAIT_TIME, 1 );
+
+            if( m_ret != MOSQ_ERR_SUCCESS )
+            {
+                errx( 1, "mosquitto_loop: %s", mosquitto_strerror( m_ret ) );
+            }
+
+            //now = time( NULL );
+        }
+        printf("main loop\n");
+        sleep(1);
+        #endif
     }
 
     exit( EXIT_SUCCESS );
