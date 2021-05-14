@@ -617,7 +617,7 @@ static void dummyJSON_handler()
         i++;
     }
 
-    info("dummy JSON Handler : %s\n", dummy_buffer[dLoop]);
+    info("dummy JSON Handler / %d : %s\n", dLoop, dummy_buffer[dLoop]);
 
     if(dLoop < 30)
         dLoop++;
@@ -629,6 +629,7 @@ static void initCANData()
 {
     int fd = open("./can_data.bin", O_RDONLY);
     read(fd, dummy_buffer, sizeof(dummy_buffer));
+    info("init CAN Data : %s\n", dummy_buffer[0]);
     close(fd);
 }
 
