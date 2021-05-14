@@ -584,7 +584,7 @@ timer_t dJSONTimerID;
 handle_t *g_h;
 
 /*-----------------------------------------------------------*/
-
+#if 0
 static void dummyJSON_handler()
 {
     int i = 0;
@@ -622,13 +622,15 @@ static void dummyJSON_handler()
     else
         dLoop = 0;
 }
-
+#endif
+#if 0
 static void initCANData()
 {
     int fd = open("./can_data.bin", O_RDONLY);
     read(fd, dummy_buffer, sizeof(dummy_buffer));
     close(fd);
 }
+#endif
 
 static void can_frame_init()
 {
@@ -971,10 +973,12 @@ static void timer_handler(int sig, siginfo_t *si, void *uc)
     {
         mqtt_handler();
     }
+    /*
     else if(*tidp == dJSONTimerID)
     {
         dummyJSON_handler();
     }
+    */
 }
 
 static int makeTimer(char *name, timer_t *timerID, int sec, int msec)
@@ -1890,7 +1894,7 @@ static void mqtt_handler()
                 #if RANE_CAN_TEST
                     publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);
                 #else
-                    publish(g_h, TopicFilter[UPSTREAM], dummy_buffer[dLoop]);
+                    //publish(g_h, TopicFilter[UPSTREAM], dummy_buffer[dLoop]);
                 #endif
             }
         break; 
@@ -1898,7 +1902,7 @@ static void mqtt_handler()
             #if RANE_CAN_TEST
                 publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);
             #else
-                publish(g_h, TopicFilter[UPSTREAM], dummy_buffer[dLoop]);
+                //publish(g_h, TopicFilter[UPSTREAM], dummy_buffer[dLoop]);
             #endif
         break;
     }
