@@ -622,12 +622,12 @@ static void dummyJSON_handler()
         dLoop = 0;
 }
 #endif
-#if 0
+#if 1
 static void initCANData()
 {
-    int fd = open("./can_data.bin", O_RDONLY);
-    read(fd, dummy_buffer, sizeof(dummy_buffer));
-    close(fd);
+    FILE *fp = fopen("./car_data.bin", "r");
+    fread(dummy_data, sizeof(data_set_t), 30, fp);
+    fclose(fp);
 }
 #endif
 
@@ -873,6 +873,20 @@ static void json_handler()
 
     memset(jsonBuffer, 0, sizeof(char) * 2048);
 
+#if RANE_CAN_TEST
+#else
+    if(dLoop < 30)
+    {
+        current_data = dummy_data[dLoop];
+        dLoop++;
+    }
+    else
+    {
+        dLoop = 0;
+        current_data = dummy_data[dLoop];
+    }
+#endif
+
     sprintf(temp, "{\n");
     strcpy(jsonBuffer,temp);
     memset(temp, 0, sizeof(char) * 128);
@@ -937,7 +951,7 @@ static void json_handler()
     #endif
     
     
- #if 1
+ #if 0
     if(dLoop < 30)
     {
         dummy_data[dLoop] = current_data;
@@ -1886,19 +1900,12 @@ static void mqtt_handler()
             }
             else if(completeFlag[3] == true)
             {
-                #if RANE_CAN_TEST
-                    publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);
-                #else
-                    //publish(g_h, TopicFilter[UPSTREAM], dummy_buffer[dLoop]);
-                #endif
+                publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);   
             }
         break; 
         case MODE_UPDOWN_STREAM:
-            #if RANE_CAN_TEST
-                publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);
-            #else
-                //publish(g_h, TopicFilter[UPSTREAM], dummy_buffer[dLoop]);
-            #endif
+            publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);
+            
         break;
     }
     {
