@@ -619,9 +619,16 @@ static void dummyJSON_handler()
 #if 1
 static void initCANData()
 {
-    FILE *fp = fopen("./car_data.bin", "r");
-    fread(dummy_data, sizeof(data_set_t), 30, fp);
-    fclose(fp);
+    FILE *fp;
+
+    if(access("./car_data.bin", F_OK) != -1)
+    {
+        fp = fopen("./car_data.bin", "r");
+        fread(dummy_data, sizeof(data_set_t), 30, fp);
+        fclose(fp);
+    }
+    else
+        errx(1, "car_data.bin File is not exist...");
 }
 #endif
 
