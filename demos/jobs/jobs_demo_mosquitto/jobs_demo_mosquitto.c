@@ -26,7 +26,6 @@
 #include <linux/can/raw.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
-#include <curses.h>
 #include <endian.h>
 
 
