@@ -659,8 +659,7 @@ static int can_init(int *sck, char *ifname)
 
 	if((*sck = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0)
 	{
-		perror("CAN Socket Error\n");
-		return 1;
+		errx(1, "CAN Socket Error\n");
 	}
 
 	memset(ifr.ifr_name, 0, sizeof(ifr.ifr_name));
@@ -668,8 +667,7 @@ static int can_init(int *sck, char *ifname)
 	
 	if(ioctl(*sck, SIOCGIFINDEX, &ifr) < 0)
 	{
-		perror("SIOCGIFINDEX Error\n");
-		return 1;
+		errx(1, "SIOCGIFINDEX Error\n");
 	}
 
 	memset(&addr, 0, sizeof(addr));
@@ -678,8 +676,7 @@ static int can_init(int *sck, char *ifname)
 
 	if(bind(*sck, (struct sockaddr *)&addr, sizeof(addr)) < 0)
 	{
-		perror("Bind Error\n");
-		return 1;
+		errx(1, "Bind Error\n");
 	}
 
 //	setsockopt(*sck, SOL_CAN_RAW, CAN_RAW_RECV_OWN_MSGS, &rfilter, sizeof(rfilter));
@@ -860,8 +857,7 @@ static void receive_can(int *sck, struct can_frame *frame)
 
 	if(bytes < 0)
 	{
-		perror("Read Error\n");
-		exit(1);
+		errx(1, "Read Error\n");
 	}
 	process_can(frame);
 }
@@ -1006,8 +1002,7 @@ static int makeTimer(char *name, timer_t *timerID, int sec, int msec)
     info("Initialize makeTimer : %s\n", name);
     if (sigaction(sigNo, &sa, NULL) == -1)  
     {  
-        printf("sigaction error\n");
-        return -1;  
+        errx(1, "sigaction error\n");
     }  
    
     /* Set and enable alarm */  
