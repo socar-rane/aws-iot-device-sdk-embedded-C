@@ -48,6 +48,9 @@ cd bin
 # Claim 인증서를 certificates 디렉토리에 복사
 cp <Claim 인증서 경로> ~/Workspace/aws-iot-device-sdk-embedded-C/build/bin/certificates/
 
+# Dummy CAN Data 파일 복사
+cp ~/Workspace/aws-iot-device-sdk-embedded-C/demos/jobs/jobs_demo_mosquitto/car_data.bin ~/Workspace/aws-iot-device-sdk-embedded-C/build/bin/
+
 # 실행 방법은 아래를 참고하세요
 ```
 
