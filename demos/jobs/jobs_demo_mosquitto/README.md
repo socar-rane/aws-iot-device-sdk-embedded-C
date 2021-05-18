@@ -9,7 +9,7 @@
 ## Mosquitto 라이브러리 설치하기
 
 ```sh
-sudo apt-get install -y curl libmosquitto-dev
+sudo apt-get install -y curl libmosquitto-dev libssl-dev
 ```
 
 ## Fleet Provisioning 코드 다운로드 및 실행 방법
@@ -25,10 +25,11 @@ git clone -b sub_master https://github.com/socar-rane/aws-iot-device-sdk-embedde
 # 프로젝트 경로 진입
 cd aws-iot-device-sdk-embedded-C/
 
-# CAN 통신 허용 유무 변경 (Default 0)
-vi demos/jobs/jobs_demo_mosquitto/demo_config.h
-#define RANE_CAN_TEST 0 --> 1로 변경 시 STS 시뮬레이터와 CAN 쉴드를 연결하여 사용
+# define RANE_CAN_TEST 0 --> 1로 변경 시 STS 시뮬레이터와 CAN 쉴드를 연결하여 사용
 # 0으로 설정할 경우 Dummy Data를 사용하여 Upstream 데이터 전송
+# CAN 통신 허용 유무 변경 (Default 0)
+# define DEBUG 0 --> 1로 변경 시 디버그 메시지 출력
+vi demos/jobs/jobs_demo_mosquitto/demo_config.h
 
 # Cmake Build 디렉토리 생성
 mkdir build
@@ -83,6 +84,15 @@ cp <Claim 인증서 경로> ~/Workspace/aws-iot-device-sdk-embedded-C/build/bin/
 
 ./jobs_demo_mosquitto -c <Certificate ID> -d <인증서 경로> -h <Endpoint Address> -m 4 -N <MDN Number>
 ```
+
+
+
+
+
+
+
+
+
 
 # ------- 아래 문서는 잠시 보류합니다!!! ----------
 
