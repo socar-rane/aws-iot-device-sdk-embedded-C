@@ -26,7 +26,6 @@
 #include <linux/can/raw.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
-#include <curses.h>
 #include <endian.h>
 
 
@@ -78,7 +77,6 @@ static void usage( const char * programName )
              "-c : Certificate ID\n"
              "-d : Cert file Directory\n"
              "-f : Fleet Provisioning Template Name\n"
-             "-n : Client ID\n"
              "-m : select mode. 1: Publish / 2: Subscribe / 3: Fleet Provisioning / 4: UpDownstream Test\n"
              "-M : Publish Message.\n"
              "-N : MDN Number\n"
@@ -378,11 +376,6 @@ static bool registerThing(char *token, size_t tokenLength);
 static bool unsubscribe( handle_t *h, char *in_topic);
 
 /**
- * @brief Create UUID String
- */ 
-static void createUUIDStr();
-
-/**
  * @brief Change MQTT Connection Information
  * @param[in] h runtime state handle
  */
@@ -504,7 +497,7 @@ can_data_t cn7_data[P_IDS], b_data[P_IDS];
  * @brief Global data set
  */ 
 data_set_t current_data;
-
+data_set_t dummy_data[30];
 /**
  * @brief Initialize Topic name
  */
@@ -578,13 +571,12 @@ uint8_t gMode = 0, gLcount = 0, gLFlag = 1, dLoop = 0;
 timer_t CANTimerID;
 timer_t JSONTimerID;
 timer_t MqttTimerID;
-timer_t dJSONTimerID;
 
 /// @brief Global runtime state handle
 handle_t *g_h;
 
 /*-----------------------------------------------------------*/
-
+#if 0
 static void dummyJSON_handler()
 {
     int i = 0;
@@ -622,13 +614,22 @@ static void dummyJSON_handler()
     else
         dLoop = 0;
 }
-
+#endif
+#if 1
 static void initCANData()
 {
-    int fd = open("./can_data.bin", O_RDONLY);
-    read(fd, dummy_buffer, sizeof(dummy_buffer));
-    close(fd);
+    FILE *fp;
+
+    if(access("./car_data.bin", F_OK) != -1)
+    {
+        fp = fopen("./car_data.bin", "r");
+        fread(dummy_data, sizeof(data_set_t), 30, fp);
+        fclose(fp);
+    }
+    else
+        errx(1, "car_data.bin File is not exist...");
 }
+#endif
 
 static void can_frame_init()
 {
@@ -657,8 +658,7 @@ static int can_init(int *sck, char *ifname)
 
 	if((*sck = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0)
 	{
-		perror("CAN Socket Error\n");
-		return 1;
+		errx(1, "CAN Socket Error\n");
 	}
 
 	memset(ifr.ifr_name, 0, sizeof(ifr.ifr_name));
@@ -666,8 +666,7 @@ static int can_init(int *sck, char *ifname)
 	
 	if(ioctl(*sck, SIOCGIFINDEX, &ifr) < 0)
 	{
-		perror("SIOCGIFINDEX Error\n");
-		return 1;
+		errx(1, "SIOCGIFINDEX Error\n");
 	}
 
 	memset(&addr, 0, sizeof(addr));
@@ -676,8 +675,7 @@ static int can_init(int *sck, char *ifname)
 
 	if(bind(*sck, (struct sockaddr *)&addr, sizeof(addr)) < 0)
 	{
-		perror("Bind Error\n");
-		return 1;
+		errx(1, "Bind Error\n");
 	}
 
 //	setsockopt(*sck, SOL_CAN_RAW, CAN_RAW_RECV_OWN_MSGS, &rfilter, sizeof(rfilter));
@@ -858,8 +856,7 @@ static void receive_can(int *sck, struct can_frame *frame)
 
 	if(bytes < 0)
 	{
-		perror("Read Error\n");
-		exit(1);
+		errx(1, "Read Error\n");
 	}
 	process_can(frame);
 }
@@ -871,6 +868,20 @@ static void json_handler()
     struct tm* timeinfo;
 
     memset(jsonBuffer, 0, sizeof(char) * 2048);
+
+#if RANE_CAN_TEST
+#else
+    if(dLoop < 30)
+    {
+        current_data = dummy_data[dLoop];
+        dLoop++;
+    }
+    else
+    {
+        dLoop = 0;
+        current_data = dummy_data[dLoop];
+    }
+#endif
 
     sprintf(temp, "{\n");
     strcpy(jsonBuffer,temp);
@@ -936,19 +947,21 @@ static void json_handler()
     #endif
     
     
- #if 0   
-    if(b_Loop < 30)
+ #if 0
+    if(dLoop < 30)
     {
-        strcpy(out_buffer[b_Loop], buffer);
-        b_Loop++;
+        dummy_data[dLoop] = current_data;
+        dLoop++;
     }
     else
     {
-        b_Loop = 0;
-        strcpy(out_buffer[b_Loop], buffer);
-        int fd = open("./car_data.bin", O_RDWR);
-        write(fd, out_buffer, sizeof(out_buffer));
-        close(fd);
+        dLoop = 0;
+        dummy_data[dLoop] = current_data;
+        
+        FILE *fp = fopen("./car_data.bin", "w");
+        fwrite(dummy_data, sizeof(data_set_t), 30, fp);
+        fclose(fp);
+        
         printf("write complete\n");
     }
 #endif
@@ -971,10 +984,6 @@ static void timer_handler(int sig, siginfo_t *si, void *uc)
     {
         mqtt_handler();
     }
-    else if(*tidp == dJSONTimerID)
-    {
-        dummyJSON_handler();
-    }
 }
 
 static int makeTimer(char *name, timer_t *timerID, int sec, int msec)
@@ -992,8 +1001,7 @@ static int makeTimer(char *name, timer_t *timerID, int sec, int msec)
     info("Initialize makeTimer : %s\n", name);
     if (sigaction(sigNo, &sa, NULL) == -1)  
     {  
-        printf("sigaction error\n");
-        return -1;  
+        errx(1, "sigaction error\n");
     }  
    
     /* Set and enable alarm */  
@@ -1354,7 +1362,7 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 			if(jsonResult == JSONSuccess)
 			{
 				FILE *fp;
-				sprintf(certFileName, "%s/%s-certificate.pem.crt", CERTFILE_PATH, certificateId);
+				sprintf(certFileName, "%s/%s-certificate.pem.crt", g_h->capath, certificateId);
 				memset(gCertFile, 0, sizeof(gCertFile));
                 strcpy(gCertFile, certFileName);
                 fp = fopen(certFileName, "w");
@@ -1374,7 +1382,7 @@ static bool assemble_certificates(char *pBuffer, size_t pBufferLength)
 			if(jsonResult == JSONSuccess)
 			{
 				FILE *fp;
-				sprintf(privateFileName, "%s/%s-private.pem.key", CERTFILE_PATH, tempId);
+				sprintf(privateFileName, "%s/%s-private.pem.key", g_h->capath, tempId);
                 memset(gPrivateKey, 0, sizeof(gPrivateKey));
                 strcpy(gPrivateKey, privateFileName);
 				fp = fopen(privateFileName, "w");
@@ -1756,9 +1764,12 @@ static void teardown( int x,
         free( h->jobid );
     }
 
-    #if RANE_CAN_TEST
-    close(*gSock);
-    #endif
+    if(gMode == 3 || gMode == 4)
+    {
+        #if RANE_CAN_TEST
+        close(*gSock);
+        #endif
+    }
     closeConnection( h );
     mosquitto_destroy( h->m );
     mosquitto_lib_cleanup();
@@ -1809,26 +1820,11 @@ static bool changeConnectionInformation(handle_t *h)
 {
     char privateKeyFile[50] = {0,}, certFile[50] = {0,};
 
-    sprintf(certFile, "./%s/%s-certificate.pem.crt", CERTFILE_PATH, gCertificateId);
-    sprintf(privateKeyFile, "./%s/%s-private.pem.key", CERTFILE_PATH, gCertificateId);
+    sprintf(certFile, "./%s/%s-certificate.pem.crt", h->capath, gCertificateId);
+    sprintf(privateKeyFile, "./%s/%s-private.pem.key", h->capath, gCertificateId);
 }
 
 /*-----------------------------------------------------------*/
-
-static void createUUIDStr()
-{
-    FILE *fp = fopen(UUID_FILE_PATH, "r");
-    char buffer[40] = {0, };
-    int count = 0;
-
-    while(feof(fp) == 0)
-    {
-        count = fread(buffer, sizeof(buffer), 1, fp);
-        buffer[strlen(buffer)-1] = '\0';
-        strcpy(uuidStr, buffer);
-    }
-    fclose(fp);
-}
 
 static void mqtt_handler()
 {
@@ -1874,32 +1870,23 @@ static void mqtt_handler()
                     errx( 1, "fatal error" );
                 }
                 set_in_progress = SET_COMPLETE;
-                //subscribe(h, TopicFilter[OPENWORLD]);
                 sprintf(TopicFilter[DOWNSTREAM], DEVICE_DOWNSTREAM_TOPIC, gClientId);
                 TopicFilterLength[DOWNSTREAM] = strlen(TopicFilter[DOWNSTREAM]);
                 subscribe(g_h, TopicFilter[DOWNSTREAM]);
 
                 sprintf(TopicFilter[UPSTREAM], DEVICE_UPSTREAM_TOPIC, gClientId);
                 TopicFilterLength[UPSTREAM] = strlen(TopicFilter[UPSTREAM]);
-//                subscribe(g_h, TopicFilter[UPSTREAM]);
                 completeFlag[2] = false;
                 completeFlag[3] = true;
             }
             else if(completeFlag[3] == true)
             {
-                #if RANE_CAN_TEST
-                    publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);
-                #else
-                    publish(g_h, TopicFilter[UPSTREAM], dummy_buffer[dLoop]);
-                #endif
+                publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);   
             }
         break; 
         case MODE_UPDOWN_STREAM:
-            #if RANE_CAN_TEST
-                publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);
-            #else
-                publish(g_h, TopicFilter[UPSTREAM], dummy_buffer[dLoop]);
-            #endif
+            publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);
+            
         break;
     }
     {
@@ -1909,7 +1896,6 @@ static void mqtt_handler()
         {
             errx( 1, "mosquitto_loop: %s", mosquitto_strerror( m_ret ) );
         }
-        //now = time( NULL );
     }
 }
 
@@ -1919,16 +1905,7 @@ int main( int argc, char * argv[] )
     time_t now;
     int i = 0, sock = 0;
 
-    createUUIDStr();
     initHandle( h, 1 );
-
-#if RANE_CAN_TEST
-    can_frame_init();
-    can_init(&sock, "can0");
-    gSock = &sock;
-#else
-    //initCANData();
-#endif
 
     g_h = h;
     
@@ -1944,16 +1921,29 @@ int main( int argc, char * argv[] )
     {
         errx( 1, "fatal error" );
     }
-       
-    //h->lastPrompt = time( NULL );
 
-#if RANE_CAN_TEST
-    makeTimer("CAN Data Read", &CANTimerID, 0, 5);
-    makeTimer("JSON Handler", &JSONTimerID, 1, 0);
-#else
-    //makeTimer("dummy JSON Handler", &dJSONTimerID, 1, 0);
-#endif
+    if(gMode == 3 || gMode == 4)
+    {
+        #if RANE_CAN_TEST
+            can_frame_init();
+            can_init(&sock, "can0");
+            gSock = &sock;
+        #else
+            initCANData();
+        #endif
+    }
+    
+    if(gMode == MODE_FLEET_PROV || gMode == MODE_UPDOWN_STREAM)
+    {
+    #if RANE_CAN_TEST
+        makeTimer("CAN Data Read", &CANTimerID, 0, 5);
+        
+    #endif
+        makeTimer("JSON Handler", &JSONTimerID, 1, 0);
+    }
+
     makeTimer("Mqtt Handler", &MqttTimerID, 1, 0);
+
     if(gMode == MODE_SUBSCRIBE)
         subscribe(h, TopicFilter[USER_PUBSUB]);
 
@@ -1979,79 +1969,6 @@ int main( int argc, char * argv[] )
     while(1)
     {
         sleep(1);
-        #if 0
-        bool ret = true;
-        int m_ret;
-
-        switch(gMode)
-        {
-            case MODE_PUBLISH:
-                if(!gLcount)
-                    publish(h, TopicFilter[USER_PUBSUB], MqttExMessage[3]);
-                else
-                {
-                    if(i == gLcount)
-                    {
-                        gLFlag = 0;
-                        exit(1);
-                    }
-                    publish(h, TopicFilter[USER_PUBSUB], MqttExMessage[3]);
-                    i++;
-                }
-            break;
-            case MODE_FLEET_PROV:
-                if(completeFlag[0] == true)
-                {
-                    publish(h, TopicFilter[PROVISIONING_CC], MqttExMessage[0]);
-                    completeFlag[0] = false;
-                }
-                if(completeFlag[1] == true)
-                {
-                    publish(h, TopicFilter[PROVISIONING_TT], MqttExMessage[1]);
-                    completeFlag[1] = false;
-                }
-
-                else if(completeFlag[2] == true)
-                {
-                    bool ret[2];
-                    initHandle(h, 2);
-                    ret[0] = setup(h);
-                    ret[1] = mqttConnect(h);
-                    if( ret[0] == false || ret[1] == false )
-                    {
-                        errx( 1, "fatal error" );
-                    }
-                    set_in_progress = SET_COMPLETE;
-                    //subscribe(h, TopicFilter[OPENWORLD]);
-                    sprintf(TopicFilter[DOWNSTREAM], DEVICE_DOWNSTREAM_TOPIC, gClientId);
-                    TopicFilterLength[DOWNSTREAM] = strlen(TopicFilter[DOWNSTREAM]);
-                    subscribe(h, TopicFilter[DOWNSTREAM]);
-
-                    sprintf(TopicFilter[DOWNSTREAM], DEVICE_DOWNSTREAM_TOPIC, gClientId);
-                    TopicFilterLength[DOWNSTREAM] = strlen(TopicFilter[DOWNSTREAM]);
-    
-                    completeFlag[2] = false;
-                    completeFlag[3] = true;
-                }
-                else if(completeFlag[3] == true)
-                {
-                    publish(h, TopicFilter[UPSTREAM], buffer);
-                }
-            break; 
-        }
-        {
-            m_ret = mosquitto_loop( h->m, MQTT_WAIT_TIME, 1 );
-
-            if( m_ret != MOSQ_ERR_SUCCESS )
-            {
-                errx( 1, "mosquitto_loop: %s", mosquitto_strerror( m_ret ) );
-            }
-
-            //now = time( NULL );
-        }
-        printf("main loop\n");
-        sleep(1);
-        #endif
     }
 
     exit( EXIT_SUCCESS );

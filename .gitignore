@@ -15,3 +15,6 @@ build/
 # Ignore certificate files
 *.pem
 *.crt
+demos/jobs/.DS_Store
+demos/.DS_Store
+.DS_Store
