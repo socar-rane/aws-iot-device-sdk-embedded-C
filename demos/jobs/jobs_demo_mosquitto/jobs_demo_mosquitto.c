@@ -428,7 +428,7 @@ static void json_handler();
  * @param[in] x one of "IN_PROGRESS", "SUCCEEDED", or "FAILED"
  */
 #define makeReport_( x )    "{\"status\":\"" x "\"}"
-#define TOPIC_LENGTH		11
+#define TOPIC_LENGTH		13
 
 // Topic Identifier
 enum
@@ -444,6 +444,8 @@ enum
     DOWNSTREAM,
     UPSTREAM,
     SHADOW_GET,
+    SHADOW_GET_ACCEPT,
+    SHADOW_GET_REJECT,
 };
 
 enum
@@ -1695,6 +1697,12 @@ void on_message( struct mosquitto * m,
         case SHADOW_GET:
             info("Shadow Get Message!\n");
         break;
+        case SHADOW_GET_ACCEPT:
+            info("Shadow Get Accept Message!\n");
+        break;
+        case SHADOW_GET_REJECT:
+            info("Shadow Get Reject Message!\n");
+        break;
         default:
         break;
     }
@@ -1978,6 +1986,12 @@ int main( int argc, char * argv[] )
         sprintf(gClientId, "sts-%s", gMDNNumber);
         sprintf(TopicFilter[SHADOW_GET], SHADOW_GET_TOPIC, gClientId);
         TopicFilterLength[SHADOW_GET] = strlen(TopicFilter[SHADOW_GET]);
+        sprintf(TopicFilter[SHADOW_GET_ACCEPT], SHADOW_GET_ACCEPT_TOPIC, gClientId);
+        TopicFilterLength[SHADOW_GET_ACCEPT] = strlen(TopicFilter[SHADOW_GET_ACCEPT]);
+        sprintf(TopicFilter[SHADOW_GET_REJECT], SHADOW_GET_REJECT_TOPIC, gClientId);
+        TopicFilterLength[SHADOW_GET_REJECT] = strlen(TopicFilter[SHADOW_GET_REJECT]);
+        subscribe(g_h, TopicFilter[SHADOW_GET_ACCEPT]);
+        subscribe(g_h, TopicFilter[SHADOW_GET_REJECT]);
     }
 
     while(1)
