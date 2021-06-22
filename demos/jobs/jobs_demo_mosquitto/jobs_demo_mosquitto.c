@@ -77,7 +77,7 @@ static void usage( const char * programName )
              "-c : Certificate ID\n"
              "-d : Cert file Directory\n"
              "-f : Fleet Provisioning Template Name\n"
-             "-m : select mode. 1: Publish / 2: Subscribe / 3: Fleet Provisioning / 4: UpDownstream Test\n"
+             "-m : select mode. 1: Publish / 2: Subscribe / 3: Fleet Provisioning / 4: UpDownstream Test / 5: Shadow Get\n"
              "-M : Publish Message.\n"
              "-N : MDN Number\n"
              "-t : Publish / Subscribe Topic\n"
@@ -428,7 +428,7 @@ static void json_handler();
  * @param[in] x one of "IN_PROGRESS", "SUCCEEDED", or "FAILED"
  */
 #define makeReport_( x )    "{\"status\":\"" x "\"}"
-#define TOPIC_LENGTH		10
+#define TOPIC_LENGTH		11
 
 // Topic Identifier
 enum
@@ -442,7 +442,8 @@ enum
 	PROVISIONING_TT,         // Provisioning Template Topic
     USER_PUBSUB,
     DOWNSTREAM,
-    UPSTREAM
+    UPSTREAM,
+    SHADOW_GET,
 };
 
 enum
@@ -458,7 +459,8 @@ enum
     MODE_PUBLISH = 1,
     MODE_SUBSCRIBE,
     MODE_FLEET_PROV,
-    MODE_UPDOWN_STREAM
+    MODE_UPDOWN_STREAM,
+    MODE_SHADOW_GET,
 };
 
 enum frame_ids
@@ -1689,7 +1691,10 @@ void on_message( struct mosquitto * m,
         break;
         case DOWNSTREAM:
             info("Downstream Message!\n");
-        break;  
+        break;
+        case SHADOW_GET:
+            info("Shadow Get Message!\n");
+        break;
         default:
         break;
     }
@@ -1888,6 +1893,9 @@ static void mqtt_handler()
             publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);
             
         break;
+        case MODE_SHADOW_GET:
+            publish(g_h, TopicFilter[SHADOW_GET], MqttExMessage[3]);
+        break;
     }
     {
         m_ret = mosquitto_loop( g_h->m, MQTT_WAIT_TIME, 1 );
@@ -1964,6 +1972,12 @@ int main( int argc, char * argv[] )
 
         sprintf(TopicFilter[UPSTREAM], DEVICE_UPSTREAM_TOPIC, gClientId);
         TopicFilterLength[UPSTREAM] = strlen(TopicFilter[UPSTREAM]);
+    }
+    else if(gMode == MODE_SHADOW_GET)
+    {
+        sprintf(gClientId, "sts-%s", gMDNNumber);
+        sprintf(TopicFilter[SHADOW_GET], SHADOW_GET_TOPIC, gClientId);
+        TopicFilterLength[SHADOW_GET] = strlne(TopicFilter[SHADOW_GET]);
     }
 
     while(1)

@@ -27,6 +27,8 @@
  */
 #define MQTT_WAIT_TIME          ( 1U * 1000U )
 
+/// @brief Shadow Get Topic
+#define SHADOW_GET_TOPIC "$aws/things/%s/shadow/get"
 /// @brief Provisioning Accept Topic
 #define TEMPLATE_ACCEPT_TOPIC "$aws/provisioning-templates/%s/provision/json/accepted"
 /// @brief Provisioning Reject Topic
