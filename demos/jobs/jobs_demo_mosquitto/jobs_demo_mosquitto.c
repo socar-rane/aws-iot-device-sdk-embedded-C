@@ -1977,7 +1977,7 @@ int main( int argc, char * argv[] )
     {
         sprintf(gClientId, "sts-%s", gMDNNumber);
         sprintf(TopicFilter[SHADOW_GET], SHADOW_GET_TOPIC, gClientId);
-        TopicFilterLength[SHADOW_GET] = strlne(TopicFilter[SHADOW_GET]);
+        TopicFilterLength[SHADOW_GET] = strlen(TopicFilter[SHADOW_GET]);
     }
 
     while(1)
