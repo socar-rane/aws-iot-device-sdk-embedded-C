@@ -856,7 +856,6 @@ static void process_can(struct can_frame *frame)
 
 static void receive_can(int *sck, struct can_frame *frame)
 {
-
 	int bytes = 0;
 
 	bytes = read(*sck, frame, sizeof(struct can_frame));
@@ -866,6 +865,101 @@ static void receive_can(int *sck, struct can_frame *frame)
 		errx(1, "Read Error\n");
 	}
 	process_can(frame);
+}
+
+static void shadow_state_handler()
+{
+    char temp[128] = {0,};
+
+    memset(jsonBuffer, 0, sizeof(char) * 2048);
+    strcpy(jsonBuffer, "{");
+
+    sprintf(temp,"\t\"state\" : {\n");
+    strcat(jsonBuffer, temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp,"\t\t\"reported\" : {\n");
+    strcat(jsonBuffer, temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    // door state
+
+    sprintf(temp,"\t\t\t\"door_fl\" : \"%s\"\n", (gStsStatus.ds.fl == 1 ? "OPEN", "CLOSE"));
+    strcat(jsonBuffer, temp);
+    memset(temp, 0, sizeof(char) * 128);
+    sprintf(temp,"\t\t\t\"door_fr\" : \"%s\"\n", (gStsStatus.ds.fr == 1 ? "OPEN", "CLOSE"));
+    strcat(jsonBuffer, temp);
+    memset(temp, 0, sizeof(char) * 128);
+    sprintf(temp,"\t\t\t\"door_rl\" : \"%s\"\n", (gStsStatus.ds.rl == 1 ? "OPEN", "CLOSE"));
+    strcat(jsonBuffer, temp);
+    memset(temp, 0, sizeof(char) * 128);
+    sprintf(temp,"\t\t\t\"door_rr\" : \"%s\"\n", (gStsStatus.ds.rr == 1 ? "OPEN", "CLOSE"));
+    strcat(jsonBuffer, temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    // doorlock state
+
+    sprintf(temp,"\t\t\t\"doorlock_fl\" : \"%s\"\n", (gStsStatus.ds.fl == 1 ? "LOCK", "UNLOCK"));
+    strcat(jsonBuffer, temp);
+    memset(temp, 0, sizeof(char) * 128);
+    sprintf(temp,"\t\t\t\"doorlock_fr\" : \"%s\"\n", (gStsStatus.ds.fr == 1 ? "LOCK", "UNLOCK"));
+    strcat(jsonBuffer, temp);
+    memset(temp, 0, sizeof(char) * 128);
+    sprintf(temp,"\t\t\t\"doorlock_rl\" : \"%s\"\n", (gStsStatus.ds.rl == 1 ? "LOCK", "UNLOCK"));
+    strcat(jsonBuffer, temp);
+    memset(temp, 0, sizeof(char) * 128);
+    sprintf(temp,"\t\t\t\"doorlock_rr\" : \"%s\"\n", (gStsStatus.ds.rr == 1 ? "LOCK", "UNLOCK"));
+    strcat(jsonBuffer, temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    // powertrain state
+
+    sprintf(temp,"\t\t\t\"engine\" : \"%s\"\n", (gStsStatus.engine == 3 ? "ON", 
+                                            gStsStatus.engine == 2 ? "ACC2",
+                                            gStsStatus.engine == 1 ? "ACC1",
+                                            gStsStatus.engine == 0 ? "OFF",""));
+    strcat(jsonBuffer, temp);
+    memset(temp, 0, sizeof(char) * 128);
+    sprintf(temp,"\t\t\t\"light\" : \"%s\"\n", (gStsStatus.light == 1 ? "ON", "OFF"));
+    strcat(jsonBuffer, temp);
+    memset(temp, 0, sizeof(char) * 128);
+    sprintf(temp,"\t\t\t\"gear_pos\" : \"%s\"\n", (gStsStatus.gear_pos == 0 ? "P",
+                                                gStsStatus.gear_pos == 1 ? "R",
+                                                gStsStatus.gear_pos == 2 ? "N",
+                                                gStsStatus.gear_pos == 3 ? "D",""));
+    strcat(jsonBuffer, temp);
+    memset(temp, 0, sizeof(char) * 128);
+    sprintf(temp,"\t\t\t\"gear_step\" : \"%d\"\n", gStsStatus.gear_step);
+    strcat(jsonBuffer, temp);
+    memset(temp, 0, sizeof(char) * 128);
+    sprintf(temp,"\t\t\t\"battery_voltage\" : \"%d\"\n", gStsStatus.battery_volt);
+    strcat(jsonBuffer, temp);
+    memset(temp, 0, sizeof(char) * 128);
+    sprintf(temp,"\t\t\t\"odometer\" : \"%d\"\n", gStsStatus.odometer);
+    strcat(jsonBuffer, temp);
+    memset(temp, 0, sizeof(char) * 128);
+    sprintf(temp,"\t\t\t\"fuel_percent\" : \"%d\"\n", gStsStatus.fuel_percent);
+    strcat(jsonBuffer, temp);
+    memset(temp, 0, sizeof(char) * 128);
+    sprintf(temp,"\t\t\t\"fuel_level\" : \"%d\"\n", gStsStatus.fuel_level);
+    strcat(jsonBuffer, temp);
+    memset(temp, 0, sizeof(char) * 128);
+    sprintf(temp,"\t\t\t\"power_module\" : \"%s\"\n", (gStsStatus.power_module == 1 ? "ON", "OFF"));
+    strcat(jsonBuffer, temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    // ----------
+
+    sprintf(temp,"\t\t}\n");
+    strcat(jsonBuffer, temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp,"\t}\n");
+    strcat(jsonBuffer, temp);
+    memset(temp, 0, sizeof(char) * 128);
+
+    sprintf(temp,"}\n");
+    strcat(jsonBuffer, temp);
 }
 
 static void json_handler()
@@ -993,7 +1087,8 @@ static void timer_handler(int sig, siginfo_t *si, void *uc)
     }
     else if(*tidp == JSONTimerID)
     {
-        json_handler();
+        //json_handler();
+        shadow_state_handler();
     }
     else if(*tidp == MqttTimerID)
     {
@@ -1943,7 +2038,7 @@ static void mqtt_handler()
             
         break;
         case MODE_SHADOW_SERVICE:
-            publish(g_h, TopicFilter[SHADOW_UPDATE], MqttExMessage[3]);
+            publish(g_h, TopicEventState[SHADOW_UPDATE], MqttExMessage[3]);
         break;
     }
     {
@@ -1998,8 +2093,8 @@ int main( int argc, char * argv[] )
     #endif
         makeTimer("JSON Handler", &JSONTimerID, 1, 0);
     }
-
-    makeTimer("Mqtt Handler", &MqttTimerID, 1, 0);
+    makeTimer("JSON Handler", &JSONTimerID, 1, 0);
+    makeTimer("Mqtt Handler", &MqttTimerID, 5, 0);
 
     if(gMode == MODE_SUBSCRIBE)
         subscribe(h, TopicFilter[USER_PUBSUB]);

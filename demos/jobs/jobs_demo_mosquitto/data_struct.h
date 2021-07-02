@@ -45,7 +45,8 @@ typedef struct {
     uint8_t battery_volt;
     int odometer;
     uint8_t fuel_percent;
-    int peripheral;
+    uint8_t fuel_level;
+    uint8_t power_module;
 } sts_status_t;
 
 typedef struct {
