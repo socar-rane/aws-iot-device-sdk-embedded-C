@@ -27,16 +27,32 @@
  */
 #define MQTT_WAIT_TIME          ( 1U * 1000U )
 
+#define EVENT_SHADOW_NAME "rane_shadow"
+#define TRIP_SHADOW_NAME "trip_shadow"
+
+/// @brief Shadow Update Publish Topic
+#define SHADOW_UPDATE_TOPIC "$aws/things/%s/shadow/name/%s/update"
+/// @brief Shadow Update Delta Topic
+#define SHADOW_UPDATE_DELTA_TOPIC "$aws/things/%s/shadow/name/%s/update/delta"
+/// @brief Shadow Update Documents Topic
+#define SHADOW_UPDATE_DOCU_TOPIC "$aws/things/%s/shadow/name/%s/update/documents"
+/// @brief Shadow Update Accept Subscribe Topic
+#define SHADOW_UPDATE_ACCEPT_TOPIC "$aws/things/%s/shadow/name/%s/update/accepted"
+/// @brief Shadow Update Reject Subscribe Topic
+#define SHADOW_UPDATE_REJECT_TOPIC "$aws/things/%s/shadow/name/%s/update/rejected"
+
 /// @brief Shadow Get Publish Topic
-#define SHADOW_GET_TOPIC "$aws/things/%s/shadow/get"
+#define SHADOW_GET_TOPIC "$aws/things/%s/shadow/name/%s/get"
 /// @brief Shadow Get Accept Subscribe Topic
-#define SHADOW_GET_ACCEPT_TOPIC "$aws/things/%s/shadow/get/accepted"
+#define SHADOW_GET_ACCEPT_TOPIC "$aws/things/%s/shadow/name/%s/get/accepted"
 /// @brief Shadow Get Reject Subscribe Topic
-#define SHADOW_GET_REJECT_TOPIC "$aws/things/%s/shadow/get/rejected"
+#define SHADOW_GET_REJECT_TOPIC "$aws/things/%s/shadow/name/%s/get/rejected"
+
 /// @brief Provisioning Accept Topic
 #define TEMPLATE_ACCEPT_TOPIC "$aws/provisioning-templates/%s/provision/json/accepted"
 /// @brief Provisioning Reject Topic
 #define TEMPLATE_REJECT_TOPIC "$aws/provisioning-templates/%s/provision/json/rejected"
+
 /// @brief Create Certificate Accept Topic
 #define CERTIFICATE_ACCEPT_TOPIC "$aws/certificates/create/json/accepted"
 /// @brief Create Certificate Reject Topic
@@ -45,10 +61,12 @@
 #define PROVISIONING_CERT_CREATE_TOPIC "$aws/certificates/create/json"
 /// @brief Fleet Provisioning Topic (Publish)
 #define PROVISIONING_TEMPLATE_TOPIC "$aws/provisioning-templates/%s/provision/json"
+
 /// @brief STS Upstream Topic
 #define DEVICE_UPSTREAM_TOPIC "$aws/rules/sts/%s/report"
 /// @brief STS Downstream Topic
 #define DEVICE_DOWNSTREAM_TOPIC "sts/%s/control"
+
 /// @brief Certificate file prefix
 #define CERTFILE_PREFIX "%s-certificate.pem.crt"
 /// @brief Private Key file prefix
@@ -79,4 +97,5 @@
 
 #define RANE_CAN_TEST 0
 #define DEBUG 0
+
 #endif /* ifndef DEMO_CONFIG_H */

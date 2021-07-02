@@ -1,14 +1,3 @@
-/* C standard includes. */
-#include <assert.h>
-#include <errno.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <fcntl.h>
-
 /* POSIX includes. */
 #include <signal.h>
 #include <sys/stat.h>
@@ -37,6 +26,7 @@
 
 #include "demo_config.h"
 #include "core_json.h"
+#include "data_struct.h"
 
 /*-----------------------------------------------------------*/
 
@@ -80,6 +70,7 @@ static void usage( const char * programName )
              "-m : select mode. 1: Publish / 2: Subscribe / 3: Fleet Provisioning / 4: UpDownstream Test / 5: Shadow Get\n"
              "-M : Publish Message.\n"
              "-N : MDN Number\n"
+             "-S : Shadow name"
              "-t : Publish / Subscribe Topic\n"
              "-l : Loop count. 0 : Forever / not 0 : Loop count <Publish only>\n"
              "-h : mqtt endpoint Address\n");
@@ -428,7 +419,7 @@ static void json_handler();
  * @param[in] x one of "IN_PROGRESS", "SUCCEEDED", or "FAILED"
  */
 #define makeReport_( x )    "{\"status\":\"" x "\"}"
-#define TOPIC_LENGTH		13
+#define TOPIC_LENGTH		14
 
 // Topic Identifier
 enum
@@ -443,9 +434,14 @@ enum
     USER_PUBSUB,
     DOWNSTREAM,
     UPSTREAM,
-    SHADOW_GET,
-    SHADOW_GET_ACCEPT,
-    SHADOW_GET_REJECT,
+};
+
+enum
+{
+    SHADOW_UPDATE,
+    SHADOW_UPDATE_ACCEPT,
+    SHADOW_UPDATE_REJECT,
+    SHADOW_UPDATE_DELTA,
 };
 
 enum
@@ -462,7 +458,7 @@ enum
     MODE_SUBSCRIBE,
     MODE_FLEET_PROV,
     MODE_UPDOWN_STREAM,
-    MODE_SHADOW_GET,
+    MODE_SHADOW_SERVICE,
 };
 
 enum frame_ids
@@ -507,12 +503,14 @@ data_set_t dummy_data[30];
  */
 
 char TopicFilter[TOPIC_LENGTH][256] = {0, };
+char TopicEventState[4][256] = {0, };
 
 /**
  * @brief Initialize Topic name length
  */
 
 uint16_t TopicFilterLength[TOPIC_LENGTH] = {0,};
+uint16_t TopicEventStateLength[4] = {0,};
 
 char MqttExMessage[4][1024] = {
 	"{}",
@@ -575,6 +573,11 @@ uint8_t gMode = 0, gLcount = 0, gLFlag = 1, dLoop = 0;
 timer_t CANTimerID;
 timer_t JSONTimerID;
 timer_t MqttTimerID;
+
+/// @brief event / trip log struct
+trip_t gTripInfo;
+sts_status_t gStsStatus;
+uint8_t gSTSFlag = 0; // 0 : clear / 1 : update / 2 : report
 
 /// @brief Global runtime state handle
 handle_t *g_h;
@@ -971,6 +974,16 @@ static void json_handler()
 #endif
 }
 
+static void upload_state_handler()
+{
+    if(gSTSFlag == STS_CLEAR)
+    {
+        gSTSFlag = STS_REPORT;
+
+        char 
+    }
+}
+
 static void timer_handler(int sig, siginfo_t *si, void *uc)
 {
     timer_t *tidp;
@@ -1166,6 +1179,7 @@ static bool parseArgs( handle_t * h,
             { "message",   required_argument, NULL, 'M' },
             { "name",      required_argument, NULL, 'n' },
             { "mdn",       required_argument, NULL, 'N' },
+            { "mdn",       required_argument, NULL, 'N' },
             { "topic",     required_argument, NULL, 't' },
             { "help",      no_argument,       NULL, '?' },
             { NULL,        0,                 NULL, 0   }
@@ -1241,7 +1255,6 @@ static bool parseArgs( handle_t * h,
                 h->nameLength = strlen( clientID );
             }
                 break;
-
             case 't':
                 if(optarg == NULL)
                     exit(1);
@@ -1625,7 +1638,18 @@ int findTopicIndex(char *in_topic)
     }
 }
 
+int findShadowTopicIndex(char *in_topic, uint8_t flag)
+{
+    int i = 0;
 
+    for(i = 0 ; i < 4 ; i++)
+    {
+        if(strcmp(in_topic, TopicEventState[i]) == 0)
+        {
+            return i;
+        }
+    }
+}
 
 void on_message( struct mosquitto * m,
                  void * p,
@@ -1637,74 +1661,93 @@ void on_message( struct mosquitto * m,
     assert( h != NULL );
     assert( message->topic != NULL );
 
-    int index = findTopicIndex(message->topic);
+    
 
     info("on topic : %s / on message : %s\n", message->topic, message->payload);
+    char *t_ptr = strstr(message->topic, "shadow");
 
-    switch(index)
+    if(t_ptr == NULL) 
     {
-        case CERTIFICATE_ACCEPT:
-            ret = assemble_certificates(message->payload, message->payloadlen);
-
-            if(ret == false)
-                errx(1, "Assemble certificates failed\n");
-            else
-            {
-                completeFlag[1] = true;
-            }
-        break;
-        
-        case TEMPLATE_ACCEPT:
+        int index = findTopicIndex(message->topic);
+        switch(index)
         {
-            ret = unsubscribeFleetProvisioning(h);
+            case CERTIFICATE_ACCEPT:
+                ret = assemble_certificates(message->payload, message->payloadlen);
 
-            if(ret == true)
-            {
-                JSONStatus_t jsonResult;
-                char *value, tQuery[24] = {0,};
-
-                set_in_progress = SET_IN_PROGRESS;
-                
-                strcpy(tQuery, "thingName");
-                size_t valueLength, queryLength = strlen(tQuery);
-
-                jsonResult = JSON_Validate(message->payload, message->payloadlen);
-
-                if(jsonResult == JSONSuccess)
+                if(ret == false)
+                    errx(1, "Assemble certificates failed\n");
+                else
                 {
-                    jsonResult = JSON_Search(message->payload, message->payloadlen,
-                    tQuery, queryLength, &value, &valueLength);
-                    strncpy(gClientId, value, valueLength);
+                    completeFlag[1] = true;
                 }
-                
-                closeConnection(h);
-                //mosquitto_destroy(h->m);
-                //changeConnectionInformation(h);
-                //mosquitto_destroy( h->m );
+            break;
+            
+            case TEMPLATE_ACCEPT:
+            {
+                ret = unsubscribeFleetProvisioning(h);
 
-                completeFlag[2] = true;
-                
+                if(ret == true)
+                {
+                    JSONStatus_t jsonResult;
+                    char *value, tQuery[24] = {0,};
+
+                    set_in_progress = SET_IN_PROGRESS;
+                    
+                    strcpy(tQuery, "thingName");
+                    size_t valueLength, queryLength = strlen(tQuery);
+
+                    jsonResult = JSON_Validate(message->payload, message->payloadlen);
+
+                    if(jsonResult == JSONSuccess)
+                    {
+                        jsonResult = JSON_Search(message->payload, message->payloadlen,
+                        tQuery, queryLength, &value, &valueLength);
+                        strncpy(gClientId, value, valueLength);
+                    }
+                    
+                    closeConnection(h);
+                    //mosquitto_destroy(h->m);
+                    //changeConnectionInformation(h);
+                    //mosquitto_destroy( h->m );
+
+                    completeFlag[2] = true;
+                    
+                }
             }
+            break;
+            case CERTIFICATE_REJECT:
+            break;
+            case TEMPLATE_REJECT:
+            break;
+            case DOWNSTREAM:
+                info("Downstream Message!\n");
+            break;
+            default:
+            break;
         }
-        break;
-        case CERTIFICATE_REJECT:
-        break;
-        case TEMPLATE_REJECT:
-        break;
-        case DOWNSTREAM:
-            info("Downstream Message!\n");
-        break;
-        case SHADOW_GET:
-            info("Shadow Get Message!\n");
-        break;
-        case SHADOW_GET_ACCEPT:
-            info("Shadow Get Accept Message!\n");
-        break;
-        case SHADOW_GET_REJECT:
-            info("Shadow Get Reject Message!\n");
-        break;
-        default:
-        break;
+    }
+    else 
+    {
+        int index = 0;
+        
+        char *s_ptr = strstr(message->topic, "event_shadow");
+        if(s_ptr != NULL)
+        {
+            index = findShadowTopicIndex(message->topic, 1);
+        }
+
+        switch(index)
+        {
+            case SHADOW_UPDATE_ACCEPT:
+                info("Shadow Get Message!\n");
+            break;
+            case SHADOW_UPDATE_REJECT:
+                info("Shadow Get Accept Message!\n");
+            break;
+            case SHADOW_UPDATE_DELTA:
+                info("Shadow Get Reject Message!\n");
+            break;
+        }
     }
 }
 
@@ -1901,8 +1944,8 @@ static void mqtt_handler()
             publish(g_h, TopicFilter[UPSTREAM], jsonBuffer);
             
         break;
-        case MODE_SHADOW_GET:
-            publish(g_h, TopicFilter[SHADOW_GET], MqttExMessage[3]);
+        case MODE_SHADOW_SERVICE:
+            publish(g_h, TopicFilter[SHADOW_UPDATE], MqttExMessage[3]);
         break;
     }
     {
@@ -1981,17 +2024,20 @@ int main( int argc, char * argv[] )
         sprintf(TopicFilter[UPSTREAM], DEVICE_UPSTREAM_TOPIC, gClientId);
         TopicFilterLength[UPSTREAM] = strlen(TopicFilter[UPSTREAM]);
     }
-    else if(gMode == MODE_SHADOW_GET)
+    else if(gMode == MODE_SHADOW_SERVICE)
     {
         sprintf(gClientId, "sts-%s", gMDNNumber);
-        sprintf(TopicFilter[SHADOW_GET], SHADOW_GET_TOPIC, gClientId);
-        TopicFilterLength[SHADOW_GET] = strlen(TopicFilter[SHADOW_GET]);
-        sprintf(TopicFilter[SHADOW_GET_ACCEPT], SHADOW_GET_ACCEPT_TOPIC, gClientId);
-        TopicFilterLength[SHADOW_GET_ACCEPT] = strlen(TopicFilter[SHADOW_GET_ACCEPT]);
-        sprintf(TopicFilter[SHADOW_GET_REJECT], SHADOW_GET_REJECT_TOPIC, gClientId);
-        TopicFilterLength[SHADOW_GET_REJECT] = strlen(TopicFilter[SHADOW_GET_REJECT]);
-        subscribe(g_h, TopicFilter[SHADOW_GET_ACCEPT]);
-        subscribe(g_h, TopicFilter[SHADOW_GET_REJECT]);
+        sprintf(TopicEventState[SHADOW_UPDATE], SHADOW_UPDATE_TOPIC, gClientId, EVENT_SHADOW_NAME);
+        TopicEventStateLength[SHADOW_UPDATE] = strlen(TopicEventState[SHADOW_UPDATE]);
+        sprintf(TopicEventState[SHADOW_UPDATE_ACCEPT], SHADOW_UPDATE_ACCEPT_TOPIC, gClientId, EVENT_SHADOW_NAME);
+        TopicEventStateLength[SHADOW_UPDATE_ACCEPT] = strlen(TopicEventState[SHADOW_UPDATE_ACCEPT]);
+        sprintf(TopicEventState[SHADOW_UPDATE_REJECT], SHADOW_UPDATE_REJECT_TOPIC, gClientId, EVENT_SHADOW_NAME);
+        TopicEventStateLength[SHADOW_UPDATE_REJECT] = strlen(TopicEventState[SHADOW_UPDATE_REJECT]);
+        sprintf(TopicEventState[SHADOW_UPDATE_DELTA], SHADOW_UPDATE_DELTA_TOPIC, gClientId, EVENT_SHADOW_NAME);
+        TopicEventStateLength[SHADOW_UPDATE_DELTA] = strlen(TopicEventState[SHADOW_UPDATE_DELTA]);
+        subscribe(g_h, TopicEventState[SHADOW_UPDATE_ACCEPT]);
+        subscribe(g_h, TopicEventState[SHADOW_UPDATE_REJECT]);
+        subscribe(g_h, TopicEventState[SHADOW_UPDATE_DELTA]);
     }
 
     while(1)
