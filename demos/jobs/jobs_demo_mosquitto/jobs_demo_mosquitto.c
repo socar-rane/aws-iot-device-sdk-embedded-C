@@ -979,8 +979,6 @@ static void upload_state_handler()
     if(gSTSFlag == STS_CLEAR)
     {
         gSTSFlag = STS_REPORT;
-
-        char 
     }
 }
 
