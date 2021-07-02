@@ -2038,7 +2038,7 @@ static void mqtt_handler()
             
         break;
         case MODE_SHADOW_SERVICE:
-            publish(g_h, TopicEventState[SHADOW_UPDATE], MqttExMessage[3]);
+            publish(g_h, TopicEventState[SHADOW_UPDATE], jsonBuffer);
         break;
     }
     {
