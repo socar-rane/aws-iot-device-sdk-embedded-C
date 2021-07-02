@@ -884,64 +884,64 @@ static void shadow_state_handler()
 
     // door state
 
-    sprintf(temp,"\t\t\t\"door_fl\" : \"%s\"\n", (gStsStatus.ds.fl == 1 ? "OPEN": "CLOSE"));
+    sprintf(temp,"\t\t\t\"door_fl\" : \"%s\",\n", (gStsStatus.ds.fl == 1 ? "OPEN": "CLOSE"));
     strcat(jsonBuffer, temp);
     memset(temp, 0, sizeof(char) * 128);
-    sprintf(temp,"\t\t\t\"door_fr\" : \"%s\"\n", (gStsStatus.ds.fr == 1 ? "OPEN": "CLOSE"));
+    sprintf(temp,"\t\t\t\"door_fr\" : \"%s\",\n", (gStsStatus.ds.fr == 1 ? "OPEN": "CLOSE"));
     strcat(jsonBuffer, temp);
     memset(temp, 0, sizeof(char) * 128);
-    sprintf(temp,"\t\t\t\"door_rl\" : \"%s\"\n", (gStsStatus.ds.rl == 1 ? "OPEN": "CLOSE"));
+    sprintf(temp,"\t\t\t\"door_rl\" : \"%s\",\n", (gStsStatus.ds.rl == 1 ? "OPEN": "CLOSE"));
     strcat(jsonBuffer, temp);
     memset(temp, 0, sizeof(char) * 128);
-    sprintf(temp,"\t\t\t\"door_rr\" : \"%s\"\n", (gStsStatus.ds.rr == 1 ? "OPEN": "CLOSE"));
+    sprintf(temp,"\t\t\t\"door_rr\" : \"%s\",\n", (gStsStatus.ds.rr == 1 ? "OPEN": "CLOSE"));
     strcat(jsonBuffer, temp);
     memset(temp, 0, sizeof(char) * 128);
 
     // doorlock state
 
-    sprintf(temp,"\t\t\t\"doorlock_fl\" : \"%s\"\n", (gStsStatus.ds.fl == 1 ? "LOCK": "UNLOCK"));
+    sprintf(temp,"\t\t\t\"doorlock_fl\" : \"%s\",\n", (gStsStatus.ds.fl == 1 ? "LOCK": "UNLOCK"));
     strcat(jsonBuffer, temp);
     memset(temp, 0, sizeof(char) * 128);
-    sprintf(temp,"\t\t\t\"doorlock_fr\" : \"%s\"\n", (gStsStatus.ds.fr == 1 ? "LOCK": "UNLOCK"));
+    sprintf(temp,"\t\t\t\"doorlock_fr\" : \"%s\",\n", (gStsStatus.ds.fr == 1 ? "LOCK": "UNLOCK"));
     strcat(jsonBuffer, temp);
     memset(temp, 0, sizeof(char) * 128);
-    sprintf(temp,"\t\t\t\"doorlock_rl\" : \"%s\"\n", (gStsStatus.ds.rl == 1 ? "LOCK": "UNLOCK"));
+    sprintf(temp,"\t\t\t\"doorlock_rl\" : \"%s\",\n", (gStsStatus.ds.rl == 1 ? "LOCK": "UNLOCK"));
     strcat(jsonBuffer, temp);
     memset(temp, 0, sizeof(char) * 128);
-    sprintf(temp,"\t\t\t\"doorlock_rr\" : \"%s\"\n", (gStsStatus.ds.rr == 1 ? "LOCK": "UNLOCK"));
+    sprintf(temp,"\t\t\t\"doorlock_rr\" : \"%s\",\n", (gStsStatus.ds.rr == 1 ? "LOCK": "UNLOCK"));
     strcat(jsonBuffer, temp);
     memset(temp, 0, sizeof(char) * 128);
 
     // powertrain state
 
-    sprintf(temp,"\t\t\t\"engine\" : \"%s\"\n", (gStsStatus.engine == 3 ? "ON": 
+    sprintf(temp,"\t\t\t\"engine\" : \"%s\",\n", (gStsStatus.engine == 3 ? "ON": 
                                             gStsStatus.engine == 2 ? "ACC2":
                                             gStsStatus.engine == 1 ? "ACC1":
                                             gStsStatus.engine == 0 ? "OFF":""));
     strcat(jsonBuffer, temp);
     memset(temp, 0, sizeof(char) * 128);
-    sprintf(temp,"\t\t\t\"light\" : \"%s\"\n", (gStsStatus.light == 1 ? "ON":"OFF"));
+    sprintf(temp,"\t\t\t\"light\" : \"%s\",\n", (gStsStatus.light == 1 ? "ON":"OFF"));
     strcat(jsonBuffer, temp);
     memset(temp, 0, sizeof(char) * 128);
-    sprintf(temp,"\t\t\t\"gear_pos\" : \"%s\"\n", (gStsStatus.gear_pos == 0 ? "P":
+    sprintf(temp,"\t\t\t\"gear_pos\" : \"%s\",\n", (gStsStatus.gear_pos == 0 ? "P":
                                                 gStsStatus.gear_pos == 1 ? "R":
                                                 gStsStatus.gear_pos == 2 ? "N":
                                                 gStsStatus.gear_pos == 3 ? "D":""));
     strcat(jsonBuffer, temp);
     memset(temp, 0, sizeof(char) * 128);
-    sprintf(temp,"\t\t\t\"gear_step\" : \"%d\"\n", gStsStatus.gear_step);
+    sprintf(temp,"\t\t\t\"gear_step\" : \"%d\",\n", gStsStatus.gear_step);
     strcat(jsonBuffer, temp);
     memset(temp, 0, sizeof(char) * 128);
-    sprintf(temp,"\t\t\t\"battery_voltage\" : \"%d\"\n", gStsStatus.battery_volt);
+    sprintf(temp,"\t\t\t\"battery_voltage\" : \"%d\",\n", gStsStatus.battery_volt);
     strcat(jsonBuffer, temp);
     memset(temp, 0, sizeof(char) * 128);
-    sprintf(temp,"\t\t\t\"odometer\" : \"%d\"\n", gStsStatus.odometer);
+    sprintf(temp,"\t\t\t\"odometer\" : \"%d\",\n", gStsStatus.odometer);
     strcat(jsonBuffer, temp);
     memset(temp, 0, sizeof(char) * 128);
-    sprintf(temp,"\t\t\t\"fuel_percent\" : \"%d\"\n", gStsStatus.fuel_percent);
+    sprintf(temp,"\t\t\t\"fuel_percent\" : \"%d\",\n", gStsStatus.fuel_percent);
     strcat(jsonBuffer, temp);
     memset(temp, 0, sizeof(char) * 128);
-    sprintf(temp,"\t\t\t\"fuel_level\" : \"%d\"\n", gStsStatus.fuel_level);
+    sprintf(temp,"\t\t\t\"fuel_level\" : \"%d\",\n", gStsStatus.fuel_level);
     strcat(jsonBuffer, temp);
     memset(temp, 0, sizeof(char) * 128);
     sprintf(temp,"\t\t\t\"power_module\" : \"%s\"\n", (gStsStatus.power_module == 1 ? "ON":"OFF"));
